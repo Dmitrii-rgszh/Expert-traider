@@ -147,3 +147,37 @@ curl -X POST http://localhost:8000/api/analyze -H "Content-Type: application/jso
 - По умолчанию backend использует SQLite (`./backend/app.db`), если `DATABASE_URL` не задан. В Docker применяется Postgres.
 - CORS разрешает `http://localhost:5173`, `http://127.0.0.1:5173`, а также туннельные хосты (см. `backend/.env`).
 - Sprint 2 добавляет гибридный анализатор. Заполните датасет и обучите baseline, чтобы поднять качество поверх правил и sentiment. При необходимости поменяйте `SENTIMENT_MODEL_ID`.
+
+## 6) Ingestion, Prefect и мониторинг свежести
+
+1. Скопируйте `backend/.env.example` → `.env` и заполните блоки **External data sources**:
+	- `MOEX_ISS_BASE_URL`, `MOEX_NEWS_LANG`, `MOEX_NEWS_LIMIT`, а также `MOEX_API_USER/ MOEX_API_PASSWORD`, если у вас закрытый сегмент ISS.
+	- `SANCTIONS_API_BASE_URL`, `SANCTIONS_API_ENDPOINT`, `SANCTIONS_API_DATASET`, `SANCTIONS_API_TOKEN` (при необходимости), `SANCTIONS_SECID_FIELDS`.
+
+2. Запустите новые ingestion-скрипты из корня репо (пример для Windows PowerShell):
+
+```powershell
+# Новости MOEX (по умолчанию берёт sitenews) и санкции через API, но можно подать локальные файлы
+python -m backend.scripts.ingestion.news --dry-run
+python -m backend.scripts.ingestion.sanctions --use-api --dry-run
+
+# Прежние источники остаются без изменений
+python -m backend.scripts.ingestion.fx --dry-run
+python -m backend.scripts.ingestion.calendar --start-date 2024-11-01 --end-date 2024-11-05 --dry-run
+```
+
+3. Чтобы зарегистрировать задания в Prefect Server/Cloud, выполните:
+
+```powershell
+python -m backend.scripts.scheduler.prefect_deployments
+```
+
+Скрипт создаст два деплоймента: `daily-ingestion-prod` (cron `5 4 * * 1-5`, таймзона Europe/Moscow) и `regime-policy-hourly` (интервал 1 час). В UI Prefect можно настроить блоки инфраструктуры (Docker/k8s), переменные и retry-политику.
+
+4. Если нужен Airflow, можно подключить шаблон `airflow/dags/market_ingestion_dag.py`. Скопируйте DAG в ваш `$AIRFLOW_HOME/dags`, обновите переменные окружения Airflow (тот же `.env`) и включите DAG в UI. В каждом таске вызываются Python-скрипты, поэтому достаточно добавить Connection/Variables только для секретов.
+
+5. Монитор свежести (`backend/scripts/monitoring/freshness.py`) теперь покрывает FX, новости, режимы, `candles`, `sanction_links` и др. Пример запуска (создаёт алерт в `data_quality_alerts` при превышении лагов):
+
+```powershell
+python -m backend.scripts.monitoring.freshness fx_rates --max-lag 60 --severity high
+```

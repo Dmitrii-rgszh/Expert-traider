@@ -13,3 +13,4 @@ scikit-learn==1.5.1
 joblib==1.4.2
 numpy==1.26.4
 python-multipart==0.0.9
+prefect==3.0.2
