@@ -6,8 +6,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
-from ..models import User, News, AnalysisResult
+from ..models import User, News, AnalysisResult, AnalysisFeedback
 from ..schemas.analyze import AnalyzeRequest, AnalyzeResponse, HistoryItem
+from ..schemas.feedback import FeedbackRequest, FeedbackResponse, FeedbackVerdict
 from ..ml import get_news_analyzer
 from ..core.config import get_settings
 from ..core.telegram import TelegramAuthError, validate_init_data
@@ -178,3 +179,55 @@ def get_history(
             )
         )
     return history
+
+
+@router.post("/feedback", response_model=FeedbackResponse)
+def submit_feedback(payload: FeedbackRequest, db: Session = Depends(get_db)) -> FeedbackResponse:
+    telegram_id = _resolve_telegram_id(payload.init_data, payload.telegram_id)
+    if not telegram_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram ID required")
+
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    analysis = db.query(AnalysisResult).filter(AnalysisResult.id == payload.analysis_id).first()
+    if analysis is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+
+    news = analysis.news or db.get(News, analysis.news_id)
+    if news is None or news.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Analysis does not belong to this user")
+
+    feedback = (
+        db.query(AnalysisFeedback)
+        .filter(
+            AnalysisFeedback.analysis_id == analysis.id,
+            AnalysisFeedback.user_id == user.id,
+        )
+        .first()
+    )
+
+    if feedback is None:
+        feedback = AnalysisFeedback(
+            analysis_id=analysis.id,
+            user_id=user.id,
+            telegram_id=telegram_id,
+            verdict=payload.verdict.value,
+            comment=payload.comment,
+        )
+        db.add(feedback)
+    else:
+        feedback.verdict = payload.verdict.value
+        feedback.comment = payload.comment
+
+    db.commit()
+    db.refresh(feedback)
+
+    return FeedbackResponse(
+        analysis_id=feedback.analysis_id,
+        verdict=FeedbackVerdict(feedback.verdict),
+        comment=feedback.comment,
+        created_at=feedback.created_at,
+        updated_at=feedback.updated_at,
+    )

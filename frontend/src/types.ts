@@ -30,3 +30,21 @@ export type HistoryItem = {
   assets: string[]
   summary?: string | null
 }
+
+export type FeedbackVerdict = 'agree' | 'disagree'
+
+export type FeedbackRequest = {
+  analysis_id: number
+  verdict: FeedbackVerdict
+  telegram_id?: string
+  init_data?: string
+  comment?: string
+}
+
+export type FeedbackResponse = {
+  analysis_id: number
+  verdict: FeedbackVerdict
+  comment?: string | null
+  created_at: string
+  updated_at: string
+}

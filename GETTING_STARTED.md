@@ -181,3 +181,31 @@ python -m backend.scripts.scheduler.prefect_deployments
 ```powershell
 python -m backend.scripts.monitoring.freshness fx_rates --max-lag 60 --severity high
 ```
+
+## 7) Полностью бесплатный стенд
+
+**Вычисления.** Держите всё локально: Docker Desktop (Community) + WSL2 дают бесплатные Linux-контейнеры. При желании можно обойтись вообще без Docker и запускать `uvicorn`, Postgres и скрипты напрямую. Для демонстраций подойдут и бесплатные tier’ы: Fly.io, Render, Railway или Supabase (Postgres до 500 МБ). Пока объём данных невелик, можно оставить SQLite (`DATABASE_URL=sqlite:///./backend/app.db`).
+
+**Источники данных.** Все ingestion-скрипты работают с открытыми API: MOEX ISS JSON (без токена, с лимитом ≈10 rps) и OpenSanctions. Дополнительные CSV/JSON можно складывать в `data/` без платных ETL.
+
+**Оркестрация.** Используйте Prefect OSS локально: `prefect server start`, затем `prefect agent start -p default-agent-pool` и `python -m backend.scripts.scheduler.prefect_deployments`. Нужен более лёгкий вариант — повесьте PowerShell-скрипты на Task Scheduler/cron. Для Airflow достаточно `pip install apache-airflow` в `.venv` и `airflow standalone`; DAG уже лежит в `airflow/dags/market_ingestion_dag.py`.
+
+**База и мониторинг.** Для SQLite ничего не требуется. Чтобы протестировать Postgres без затрат, используйте `docker compose up -d db`. Монитор свежести (`backend/scripts/monitoring/freshness.py`) пишет алерты в локальную БД, то есть никаких внешних APM/SaaS.
+
+**ML/обучение.**
+
+1. Соберите набор для обучения: `python -m scripts.export_training_dataset --out data/processed/train.csv` (скрипт можно добавить по аналогии с существующими ingestion, если нужен кастом).
+2. Запускайте ноутбуки в Google Colab Free или Kaggle Notebooks (GPU/TPU бесплатно). Данные <100 МБ можно хранить в репозитории; большие — в Google Drive или на Hugging Face Datasets.
+3. Для инференса храните веса в `backend/models/` (до 100 МБ бесплатный Git; далее Git LFS). Локальный `uvicorn` или Docker-контейнер выполняют модель без облачных сервисов.
+
+**Минимальный сценарий:**
+
+```powershell
+prefect server start
+prefect agent start -p default-agent-pool
+python -m backend.scripts.ingestion.fx
+python -m backend.scripts.ingestion.news --dry-run
+python -m backend.scripts.monitoring.freshness fx_rates --max-lag 60
+```
+
+Вся цепочка остаётся бесплатной, пока вы не переходите на управляемые базы, Prefect Cloud или коммерческие фиды данных.

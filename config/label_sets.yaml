@@ -1,0 +1,19 @@
+label_sets:
+  basic_v1:
+    timeframe: 1m
+    horizons: [60, 240, 1440]
+    take_profit: 0.02
+    stop_loss: 0.01
+    description: Базовый набор intraday/swing горизонтов для большинства бумаг.
+  intraday_v1:
+    timeframe: 1m
+    horizons: [30, 60, 120]
+    take_profit: 0.015
+    stop_loss: 0.008
+    description: Более агрессивные внутридневные метки.
+  swing_v1:
+    timeframe: 1h
+    horizons: [240, 720, 1440]
+    take_profit: 0.03
+    stop_loss: 0.015
+    description: Свинговые (1-3 дня) горизонты. Используем 1h свечи (15m недоступно в MOEX API).

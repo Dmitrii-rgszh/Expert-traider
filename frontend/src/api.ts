@@ -1,4 +1,4 @@
-import type { AnalyzeRequest, AnalyzeResponse, HistoryItem } from './types'
+import type { AnalyzeRequest, AnalyzeResponse, FeedbackRequest, FeedbackResponse, HistoryItem } from './types'
 
 const LOCAL_API_FALLBACK = 'http://localhost:8000/api'
 
@@ -49,6 +49,18 @@ export async function getHistory(telegramId: string, limit = 20, initData?: stri
   const res = await fetch(url)
   if (!res.ok) {
     throw new Error(`History request failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function submitFeedback(req: FeedbackRequest): Promise<FeedbackResponse> {
+  const res = await fetch(`${API_URL}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) {
+    throw new Error(`Feedback request failed: ${res.status}`)
   }
   return res.json()
 }

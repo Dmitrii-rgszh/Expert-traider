@@ -20,6 +20,7 @@ from app.main import app
 from app.db.session import Base, engine
 from app.core.config import get_settings
 
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 BOT_TOKEN = get_settings().telegram_bot_token or ""
@@ -111,3 +112,68 @@ def test_history_requires_init_data():
     user_id = 4001
     res = client.get('/api/history', params={"telegram_id": str(user_id), "limit": 5})
     assert res.status_code == 401
+
+
+def test_feedback_submission_and_update():
+    user_id = 5001
+    init_data = make_init_data(user_id)
+    analyze_payload = {
+        "text": "Банк объявил о выкупе акций, рынок реагирует позитивно.",
+        "title": "Байбек поддержит цену",
+        "telegram_id": str(user_id),
+        "init_data": init_data,
+    }
+    analyze_res = client.post('/api/analyze', json=analyze_payload)
+    assert analyze_res.status_code == 200
+    analysis_id = analyze_res.json()["analysis_id"]
+
+    feedback_payload = {
+        "analysis_id": analysis_id,
+        "verdict": "agree",
+        "telegram_id": str(user_id),
+        "init_data": make_init_data(user_id),
+    }
+    feedback_res = client.post('/api/feedback', json=feedback_payload)
+    assert feedback_res.status_code == 200
+    feedback_body = feedback_res.json()
+    assert feedback_body["analysis_id"] == analysis_id
+    assert feedback_body["verdict"] == "agree"
+
+    feedback_payload["verdict"] = "disagree"
+    feedback_payload["init_data"] = make_init_data(user_id)
+    feedback_res2 = client.post('/api/feedback', json=feedback_payload)
+    assert feedback_res2.status_code == 200
+    assert feedback_res2.json()["verdict"] == "disagree"
+
+
+def test_feedback_rejects_foreign_user():
+    owner_id = 5101
+    analyze_payload = {
+        "text": "Компания предупреждает о санкциях.",
+        "title": "Санкции угрожают",
+        "telegram_id": str(owner_id),
+        "init_data": make_init_data(owner_id),
+    }
+    analyze_res = client.post('/api/analyze', json=analyze_payload)
+    assert analyze_res.status_code == 200
+    analysis_id = analyze_res.json()["analysis_id"]
+
+    attacker_id = 5102
+    # seed attacker user so that they exist in DB but do not own the analysis
+    attacker_payload = {
+        "text": "Локальная новость для другого пользователя.",
+        "title": "Несвязанная новость",
+        "telegram_id": str(attacker_id),
+        "init_data": make_init_data(attacker_id),
+    }
+    attacker_analyze = client.post('/api/analyze', json=attacker_payload)
+    assert attacker_analyze.status_code == 200
+
+    bad_payload = {
+        "analysis_id": analysis_id,
+        "verdict": "agree",
+        "telegram_id": str(attacker_id),
+        "init_data": make_init_data(attacker_id),
+    }
+    bad_res = client.post('/api/feedback', json=bad_payload)
+    assert bad_res.status_code == 403

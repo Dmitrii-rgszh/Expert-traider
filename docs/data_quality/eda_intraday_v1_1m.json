@@ -1,0 +1,34 @@
+{
+  "label_set": "intraday_v1",
+  "timeframe": "1m",
+  "start": "2024-10-01T07:00:00+00:00",
+  "end": "2024-11-15T18:45:00+00:00",
+  "generated_at": "2025-11-15T16:23:54.901015+00:00",
+  "horizons": {
+    "30": {
+      "rows": 54343,
+      "coverage_per_day": 0.4101977657004831,
+      "long_positive_ratio": 0.003937949689932466,
+      "short_positive_ratio": 0.0027234418416355374,
+      "long_expectancy": -9.362254722360819e-05,
+      "short_expectancy": 7.204103561691968e-05
+    },
+    "60": {
+      "rows": 54343,
+      "coverage_per_day": 0.4101977657004831,
+      "long_positive_ratio": 0.010856964098411939,
+      "short_positive_ratio": 0.011059382073128093,
+      "long_expectancy": -0.00019654490194201654,
+      "short_expectancy": 0.00014169830332635595
+    },
+    "120": {
+      "rows": 54317,
+      "coverage_per_day": 0.41000150966183574,
+      "long_positive_ratio": 0.03240237862915846,
+      "short_positive_ratio": 0.034666863044718964,
+      "long_expectancy": -0.00036537907478405274,
+      "short_expectancy": 0.0003042278913845509
+    }
+  },
+  "text_summary": "Label EDA intraday_v1/1m rows=163003 secids=2 window=2024-10-01..2024-11-15\n- H=30m rows=54343 coverage/day=0.41 long+= 0.39% short+= 0.27% long_exp=-0.0001 short_exp=0.0001\n- H=60m rows=54343 coverage/day=0.41 long+= 1.09% short+= 1.11% long_exp=-0.0002 short_exp=0.0001\n- H=120m rows=54317 coverage/day=0.41 long+= 3.24% short+= 3.47% long_exp=-0.0004 short_exp=0.0003"
+}

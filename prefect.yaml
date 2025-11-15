@@ -1,0 +1,44 @@
+# Welcome to your prefect.yaml file! You can use this file for storing and managing
+# configuration for deploying your flows. We recommend committing this file to source
+# control along with your flow code.
+
+# Generic metadata about this project
+name: AUTO-TRADER
+prefect-version: 3.0.2
+
+# build section allows you to manage and build docker images
+build: null
+
+# push section allows you to manage if and how this project is uploaded to remote locations
+push: null
+
+# pull section allows you to provide instructions for cloning this project in remote locations
+pull:
+- prefect.deployments.steps.set_working_directory:
+    directory: E:\TRAIN\AUTO-TRADER
+
+# the deployments section allows you to provide configuration for deploying flows
+deployments:
+- name: candles-ingest-intraday
+  version: null
+  tags: []
+  concurrency_limit: null
+  description: null
+  entrypoint: backend/scripts/scheduler/prefect_flows.py:candles_ingest_flow
+  parameters:
+    timeframes:
+    - 1m
+    min_ratio: 0.1
+    fail_on_low: false
+  work_pool:
+    name: local-agent-pool
+    work_queue_name: default
+    job_variables: {}
+  schedules:
+  - cron: '*/5 * * * *'
+    timezone: null
+    day_or: true
+    active: true
+    max_active_runs: null
+    catchup: false
+  enforce_parameter_schema: true

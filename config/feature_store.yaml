@@ -1,0 +1,70 @@
+version: 1
+owner: ml-core
+parquet_root: data/processed/features
+snapshot_partitioning: daily
+description: >
+  Feature Store v1 фиксирует доступные feature_set/timeframe сочетания, их версионность и
+  материализацию в БД (feature_windows/*) и parquet снапшотах.
+feature_sets:
+  tech_v1:
+    entity: equity
+    default_window_size: 60
+    version: 1
+    description: >
+      Базовые технические индикаторы (SMA/EMA, RSI, ATR, диапазоны, свечные паттерны).
+    timeframes:
+      "1m": { window_size: 60 }
+      "5m": { window_size: 60 }
+      "15m": { window_size: 96 }
+      "1h": { window_size: 72 }
+      "1d": { window_size: 30 }
+    features:
+      - return_1
+      - sma_ratio_5_20
+      - ema_ratio_12_26
+      - macd_line
+      - macd_signal
+      - macd_hist
+      - rsi_14
+      - volatility_20
+      - atr_14
+      - volume_zscore_20
+      - price_position_20
+      - intraday_range_pct
+      - candle_body_pct
+      - upper_shadow_pct
+      - lower_shadow_pct
+      - bullish_engulfing
+      - bearish_engulfing
+  tech_v2:
+    entity: equity
+    default_window_size: 120
+    version: 2
+    description: >
+      Расширенный набор: tech_v1 + Bollinger Bands + Stochastic Oscillator (для Feature Store v2).
+    timeframes:
+      "1m": { window_size: 120 }
+      "5m": { window_size: 96 }
+      "15m": { window_size: 96 }
+      "1h": { window_size: 72 }
+    features:
+      - return_1
+      - sma_ratio_5_20
+      - ema_ratio_12_26
+      - macd_line
+      - macd_signal
+      - macd_hist
+      - rsi_14
+      - volatility_20
+      - atr_14
+      - volume_zscore_20
+      - price_position_20
+      - intraday_range_pct
+      - candle_body_pct
+      - upper_shadow_pct
+      - lower_shadow_pct
+      - bullish_engulfing
+      - bearish_engulfing
+      - bollinger_band_pct
+      - stoch_k_14
+      - stoch_d_3

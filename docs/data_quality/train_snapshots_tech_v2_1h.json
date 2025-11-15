@@ -1,0 +1,18 @@
+{
+  "feature_set": "tech_v2",
+  "timeframe": "1h",
+  "generated_at": "2025-11-15T16:22:45.301637+00:00",
+  "secids": {
+    "GAZP": {
+      "snapshots": 33,
+      "total_rows": 483,
+      "last_snapshot_end": "2024-11-15T18:00:00+00:00"
+    },
+    "SBER": {
+      "snapshots": 33,
+      "total_rows": 483,
+      "last_snapshot_end": "2024-11-15T18:00:00+00:00"
+    }
+  },
+  "text_summary": "Snapshot summary for tech_v2/1h\n- total rows: 966\n- secids: GAZP, SBER\n- last snapshot: 2024-11-15T18:00:00+00:00\n  · GAZP: 33 snapshots, rows=483, latest=2024-11-15T18:00:00+00:00\n  · SBER: 33 snapshots, rows=483, latest=2024-11-15T18:00:00+00:00"
+}

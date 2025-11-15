@@ -1,0 +1,31 @@
+{
+  "label_set": "swing_v1",
+  "timeframe": "1h",
+  "start": "2024-10-01T07:00:00+00:00",
+  "end": "2024-11-15T18:45:00+00:00",
+  "total": 2960,
+  "horizons": {
+    "240": {
+      "rows": 1004,
+      "long_positive_ratio": 0.01693227091633466,
+      "short_positive_ratio": 0.0069721115537848604,
+      "long_pnl_mean": -0.0002715020121698877,
+      "short_pnl_mean": 0.0005170060529169105
+    },
+    "720": {
+      "rows": 990,
+      "long_positive_ratio": 0.0696969696969697,
+      "short_positive_ratio": 0.04141414141414142,
+      "long_pnl_mean": -0.0002479886338297467,
+      "short_pnl_mean": 0.001075051018008883
+    },
+    "1440": {
+      "rows": 966,
+      "long_positive_ratio": 0.16770186335403728,
+      "short_positive_ratio": 0.13561076604554864,
+      "long_pnl_mean": -0.0005631181134464044,
+      "short_pnl_mean": 0.0032556901147178705
+    }
+  },
+  "text_summary": "Label set=swing_v1 timeframe=1h rows=2960 window=2024-10-01..2024-11-15\n- H=240m rows=1004 long+= 1.69% short+= 0.70%\n- H=720m rows=990 long+= 6.97% short+= 4.14%\n- H=1440m rows=966 long+= 16.77% short+= 13.56%"
+}

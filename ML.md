@@ -5,6 +5,106 @@
 Регулярно дообучается и подстраивается под каждую конкретную бумагу,
 Предоставляет функционал, пригодный для использования в Telegram Miniapp.
 Ниже — детальная постановка задачи, которую нужно реализовать.
+
+## Дорожная карта и чек-лист прогресса
+
+| Статус | Блок | Что нужно сделать |
+| --- | --- | --- |
+| ✅ | Baseline MVP | Подняты rule-based + ruBERT эвристики для новостей, подготовлена таблица trade_labels и базовый RandomForest в ноутбуке. |
+| ☐ | Data Foundation (Тех. анализ) | 1) Спроектировать и задокументировать пайплайн выгрузки исторических OHLCV (1m/5m/15m/1h/1d) по всем core-тикерам.<br>2) Настроить Prefect/Airflow-флоу `candles-ingest` с бэкапом в S3/MinIO и валидацией объёмов.<br>3) Добить таблицы `feature_windows/*` для разных таймфреймов (на данный момент хранится только частичный baseline). |
+| ✅ | Feature Store v1 | 1) `config/feature_store.yaml` + `docs/feature_store_v1.md` фиксируют схему/версии.<br>2) В `build_window.py` добавлены MACD/ATR/свечные паттерны, снапшоты регистрируются в `train_data_snapshots`.<br>3) `export_snapshots.py` + Prefect таск автоматизируют parquet/feather. |
+| ☐ | Labeling & Targets | 1) Формализовать горизонты H (интрадей, swing, позиционный) и параметры TP/SL.<br>2) Добавить расчёт P&L/MaxDrawdown в label-скрипты + quality-метрики (coverage, class balance).<br>3) Визуализировать распределения меток в `notebooks/trade_labels_eda.ipynb` и сохранить отчёт. |
+| ☐ | ML Infra (Experimentation) | 1) Развернуть MLflow (или Weights & Biases) для трекинга экспериментов.<br>2) Добавить Makefile/Prefect flow `train-trader-model` с параметрами датасета, диапазонов дат, seed.<br>3) Собирать артефакты моделей в `artifacts/models/{date}/` + сохранять конфиги. |
+| ☐ | Baseline Neural Model | 1) Реализовать первую нейросетевую модель (например, Temporal Fusion Transformer) на технических фичах + news scores.<br>2) Настроить k-fold / walk-forward валидацию и метрики (ROC-AUC, Calibrated success rate, expectancy, max drawdown).<br>3) Подготовить inference-скрипт и интеграцию в backend как экспериментальный endpoint. |
+| ☐ | Multi-Head “Совет стратегий” | 1) Добавить отдельные головы для тренда / mean-reversion / новостей / волатильности.<br>2) Реализовать meta-агрегатор, который обучается на исторических данных принимать финальное решение.<br>3) Встроить explainability: логировать голоса и топ-фичи. |
+| ☐ | Online adaptation & feedback loop | 1) Собрать real-time фидбек пользователей (done ✔️) и подключить его к тренировочному пайплайну.<br>2) Автоматизировать переобучение (например, еженедельно) и деплой новой версии в тестовый контур.<br>3) Добавить мониторинг дрейфа/качества (Prefect + dashboards). |
+
+> Как работать с чек-листом:
+> 1. После завершения этапа проставляем ✅ и кратко описываем достижения (дата, ссылка на MR/commit).
+> 2. Если этап разбит на подпункты, фиксируем прогресс внутри блока, чтобы не потерять детали.
+> 3. Любые промежуточные инсайты (например, проблемы с данными, графики распределений) документируем прямо под таблицей или в отдельном разделе с датой.
+
+### Текущая рабочая фаза (Sprint 0: Data Foundation)
+
+**Цель:** собрать историю свечей/фич, чтобы можно было формировать полноценные датасеты для обучения.
+
+1. **Исторические OHLCV**  
+	- [x] Каталог тикеров (core: SBER, GAZP, LKOH, GMKN, ROSN, NVTK, TATN, CHMF, YNDX) в `config/universe_core.json`.  
+	- [x] Загрузка 1m/5m/15m/1h/1d через MOEX ISS (`python -m backend.scripts.ingestion.backfill_candles`).  
+	- [x] Складирование в таблицу `candles` + parquet (`data/raw/candles/{secid}/{timeframe}/`) — 2024 год выгружен по всем core-тикам (1m…1d) скриптом `backend/scripts/ingestion/backfill_candles.py`, в SQLite `candles` лежит 1.8M+ строк, для каждого тикера создано древо `data/raw/candles/{secid}/{timeframe}/YYYY-MM-DD_*.csv`.
+
+2. **Prefect ingestion flow**  
+	- [x] Flow `candles-ingest-flow` с параметрами `secids`, `timeframes`, `since/until`, `export_dir`, `min_ratio`.  
+	- [x] Deployment в work pool `local-agent-pool`, расписание каждые 5 минут для 1m/5m, каждые 30 минут для 15m/1h, ежедневно для 1d.  
+	- [x] Логирование + алерт по объёму (warning/exception при ratio < threshold).
+
+3. **Feature window генерация v0**  
+	- [x] Функция расчёта индикаторов (SMA/EMA, RSI, ATR, volume z-score) в `backend/scripts/features/build_windows.py`.  
+	- [x] Запись результатов в `feature_windows`, `feature_numeric` с `feature_set='tech_v0'`.  
+	- [x] Экспорт снапшотов в `data/processed/features/{feature_set}/{timeframe}/YYYYMMDD.parquet` (`python -m backend.scripts.features.export_snapshots ...`, интеграция в Prefect flow `candles-and-features-flow`).
+
+4. **Контроль качества данных**  
+	- [x] Jupyter-ноутбук `notebooks/data_quality.ipynb` с проверками: количество свечей/день, пропуски, сравнение с отчётом `evaluate_quality`.  
+	- [x] Автоматический отчёт в `docs/data_quality/` (JSON + summary) через `python -m backend.scripts.monitoring.data_quality_report ...`.
+
+5. **Документация**  
+	- [x] README раздел “Data Foundation” (описание CLI, расписание Prefect, пути raw/processed).  
+	- [x] Обновление чек-листа (таблица выше) и фиксация дат выполнения подпунктов (Sprint 0 = done).
+
+### Прогресс на 2025-11-15
+
+- Запущен модуль `backend/scripts/ingestion/news.py`, который ежедневно подтягивает MOEX SiteNews (обработано и записано по 50+ событий за прогон, с заполнением `NewsEvent`, `NewsSource`, `GlobalRiskEvent`, `RiskAlert`).
+- Prefect flow `candles-and-features-flow` зарегистрирован через `backend/scripts/scheduler/register_deployments.py`, работает в `local-agent-pool` (1–5-минутные окна) и обслуживается запущенными `prefect server/worker` процессами.
+- Запущен `tech_v2` (1m/5m/1h): ресэмплинг с 1m, добавлены признаки Bollinger/Stochastic, снапшоты и отчёты `docs/data_quality/train_snapshots_tech_v2_{1m,1h}.json`.
+- Для label_set `intraday_v1` и `swing_v1` сняты EDA (`docs/data_quality/eda_intraday_v1_1m.json`, `docs/data_quality/eda_swing_v1_1h.json`).
+- `backend/scripts/ml/prepare_baseline_dataset.py` умеет `--include-news-features`, добавляя счётчики новостей/рисков на окнах 60/240/1440 минут.
+- Prefect flow `train-temporal-model-flow` поддерживает grid-search (`--train-grid-json`) и нотификации (`--train-notification-url`).
+
+#### Следующий этап: Baseline Neural Model
+
+1. **Temporal CNN/TFT с news features.** Использовать экспорт `tech_v2` + `--include-news-features`, обучить расширенный Temporal CNN и пилотный Temporal Fusion Transformer; зафиксировать метрики ROC/PR/Expectancy по intraday_v1 и swing_v1.
+2. **Grid-search + walk-forward.** Автоматизировать подбор гиперпараметров через `train-temporal-model-flow`, добавить walk-forward split (интервалы 2023→2025) и отчёты в `docs/modeling/baseline_neural_model.md`.
+3. **Inference API.** Собрать сервис (`backend/app/ml/service.py`) с эндпоинтом `/api/v1/signals`, который подтягивает последние окна фич, подаёт в обученную модель и возвращает BUY/SELL/HOLD с confidence + текстовым объяснением (top features, news context).
+
+#### Дополнительные доказательства прогресса
+
+- Скрипт `backend/scripts/features/build_window.py` считает SMA/EMA/RSI/volatility/volume z-score и записывает окна в `feature_windows`/`feature_numeric` для `feature_set='tech_v1'`; пайплайн запускается по тикерам SBER/GAZP для периода 2024-10-01 … 2024-11-15.
+- Скрипт `backend/scripts/labels/build_labels.py` формирует многогоризонтные метки (`60/240/1440` минут, TP=2%, SL=1%) и публикует их в `trade_labels` c label_set `basic_v1`.
+- `backend/scripts/ml/prepare_baseline_dataset.py` собирает объединённый CSV (`data/training/baseline_dataset.csv`) за указанный диапазон; sanity-чек на меньшем окне (2024-10-01) даёт 1.3k строк с 19 столбцами.
+- `backend/scripts/training/train_temporal_cnn.py` обучает Temporal CNN (seq=32, batch=64) и сохраняет логи/чекпойнты в `logs/temporal_cnn` (TensorBoard установлен, ROC-построение включено).
+- Фикс performance bottleneck: построены композитные индексы `ix_feature_windows_timeframe_feature_set_window_end_secid` и `ix_trade_labels_timeframe_label_set_signal_time_secid` (см. миграцию `0f68bb77f483_add_covering_indexes_for_dataset.py`), `prepare_baseline_dataset.py` переписан на двухфазный селект + join in-memory, из-за чего выгрузка окна 2024-10-01…2024-11-15 (SBER/GAZP, feature_set `tech_v1`, label_set `basic_v1`) занимает ~17 секунд вместо “бесконечного” SQL join.
+- Добавлен CLI `backend/scripts/features/export_snapshots.py` + Prefect-задача `export_feature_snapshots_task`, автоматически выгружающие parquet/feather в `data/processed/features/{feature_set}/{timeframe}/YYYYMMDD.parquet`.
+- Контроль качества данных реализован через `backend/scripts/monitoring/data_quality_report.py`, отчёты `docs/data_quality/*.json` и ноутбук `notebooks/data_quality.ipynb`; README раздел “Data Foundation” описывает сценарии запуска.
+- Создан `config/feature_store.yaml` + `docs/feature_store_v1.md`, снапшоты регистрируются в `train_data_snapshots` (secid/timeframe/feature_set/rows_count).
+- `config/label_sets.yaml` + обновлённый `backend/scripts/labels/build_labels.py`: поддержка dry-run, summary JSON (`docs/data_quality/labels_basic_v1_1m_2024-10-01_2024-11-15.json`) и расчёт long/short P&L.
+- Prefect flow `train-temporal-model-flow` готовит датасет и запускает `train_temporal_cnn.py` с MLflow-параметрами (`--mlflow-tracking-uri`, `--mlflow-tags` и пр.), автоматически логирует ROC/PR/Accuracy и артефакты.
+
+#### Апдейт 2025-11-15 (intraday_v1 walk-forward)
+
+- Датасет `data/training/dataset_intraday_v1.csv` пересобран для периода 2024-10-01 10:18 UTC – 2024-10-04 18:00 UTC: 17 280 строк, 334 положительных окна (15 — 1 октября, 319 — 3 октября). Включены news features (`--include-news-features`) по окнам 60/240/1440 минут, бэкап лежит в `data/training/dataset_intraday_v1.csv.bak`.
+- Walk-forward `configs/walk_forward_intraday.json` обновлён: `train` 10 602/17, `val` 720/182, `test` 5 958/135 строк/позитивов соответственно; маски проверены отдельным sanity-скриптом (см. PowerShell one-liner в history).
+- `backend/scripts/training/train_temporal_cnn.py` усилен: `torch.set_float32_matmul_precision("medium")`, автоматический подбор `num_workers` (до 4) + `persistent_workers`, защита чекпойнтов при отсутствии `val`-метрик и форсированное добавление корня репо в `sys.path`/`PYTHONPATH`, чтобы DataLoader-воркеры не падали в Prefect.
+- Prefect деплой `train-temporal-model-flow/train-temporal-model-intraday` перерегистрирован с обновлёнными путями и запущен (`flow run kind-ibis`). Флоу завершился успешно, артефакты лежат в `logs/temporal_cnn/tft_split_oct1_balanced` и `artifacts/temporal_cnn/tft_split_oct1_balanced/2024-10-04T22-18`.
+- Текущие метрики baseline TFT: `ROC-AUC=0.3532`, `PR-AUC=0.0120`, `precision/recall=0` на тестовом окне (все 99 положительных не найдены). Warning от `sklearn` зафиксирован в логах. Следующий шаг — усилить обучение на классе 1 (class weights, focal loss, downsampling) и перепроверить новостные фичи.
+
+### Фокус после закрытия Sprint 0
+
+1. **Feature Store v2 / расширение признаков.**  
+	- Вынести расчёт дополнительных индикаторов в отдельные модули + unit-тесты, описать `tech_v2` и альтернативные таймфреймы (5m/15m/1h) в `config/feature_store.yaml`.  
+	- Подготовить materialized views / marts для “feature windows + snapshots” (см. `docs/feature_store_v1.md` → добавить секцию deployment).  
+	- Автоматизировать загрузку `train_data_snapshots` в мониторинг (дашборд Prefect + alert при отсутствии новых файлов).
+
+2. **Labeling & Targets расширенный.**  
+	- Провести EDA (`notebooks/trade_labels_eda.ipynb`) с новыми P&L-метриками, собрать отчёты по `intraday_v1` и `swing_v1`.  
+	- Добавить комбинированные label_set (multi-horizon, meta-label), описать правила в `config/label_sets.yaml`.  
+	- Снять качественные метрики (coverage, class balance, expectancy) в JSON и приложить к ML.md.
+
+3. **ML Infra & модельный цикл.**  
+	- Подключить MLflow Tracking сервер (docker-compose) и добавить хранение артефактов/ROC фигур в `artifacts/models/{date}/`.  
+	- Расширить Prefect `train-temporal-model-flow`: поддержка grid-search (несколько run'ов), публикация метрик в Slack/Telegram.  
+	- Подготовить baseline TemporalCNN vs Transformer сравнение + план по A/B в Miniapp.
+
+
 1. Цели системы и общий функционал
 1.1. Главная цель
 

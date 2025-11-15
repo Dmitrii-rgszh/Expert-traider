@@ -15,6 +15,7 @@ class TrainDataSnapshot(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     secid: Mapped[str] = mapped_column(String(32), nullable=False)
     timeframe: Mapped[str] = mapped_column(String(16), nullable=False)
+    feature_set: Mapped[str] = mapped_column(String(64), nullable=False, default="tech_v1")
     snapshot_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     snapshot_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     rows_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -22,7 +23,12 @@ class TrainDataSnapshot(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "secid", "timeframe", "snapshot_start", "snapshot_end", name="uq_train_data_snapshots_range"
+            "secid",
+            "timeframe",
+            "feature_set",
+            "snapshot_start",
+            "snapshot_end",
+            name="uq_train_data_snapshots_range",
         ),
     )
 

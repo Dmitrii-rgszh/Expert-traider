@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { analyze, getHistory } from './api'
-import type { AnalyzeResponse, HistoryItem } from './types'
+import { analyze, getHistory, submitFeedback } from './api'
+import type { AnalyzeResponse, HistoryItem, FeedbackVerdict } from './types'
 import './App.css'
 
 const directionLabels: Record<'bullish' | 'bearish' | 'neutral', string> = {
@@ -31,6 +31,10 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null)
+  const [feedbackSending, setFeedbackSending] = useState(false)
+  const [feedbackVerdict, setFeedbackVerdict] = useState<FeedbackVerdict | null>(null)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
 
   const telegramId = useMemo(() => {
     try {
@@ -132,6 +136,46 @@ export default function App() {
     }
   }, [])
 
+  const handleFeedback = useCallback(
+    async (verdict: FeedbackVerdict) => {
+      if (!result) {
+        return
+      }
+      if (!telegramId) {
+        setFeedbackError('Нужно открыть миниапп внутри Telegram, чтобы оставить отклик.')
+        return
+      }
+      if (feedbackSending) {
+        return
+      }
+      if (feedbackVerdict === verdict && !feedbackError) {
+        return
+      }
+
+      setFeedbackSending(true)
+      setFeedbackError(null)
+      try {
+        const response = await submitFeedback({
+          analysis_id: result.analysis_id,
+          verdict,
+          telegram_id: telegramId,
+          init_data: initData || undefined,
+        })
+        setFeedbackVerdict(response.verdict)
+        setFeedbackMessage(
+          response.verdict === 'agree'
+            ? 'Спасибо! Этот сигнал подтверждён.'
+            : 'Приняли несогласие — использую для дообучения.'
+        )
+      } catch (err: any) {
+        setFeedbackError(err?.message ?? 'Не удалось сохранить обратную связь')
+      } finally {
+        setFeedbackSending(false)
+      }
+    },
+    [feedbackError, feedbackSending, feedbackVerdict, initData, result, telegramId]
+  )
+
   useEffect(() => {
     if (activeTab === 'history') {
       debug('History tab activated')
@@ -161,6 +205,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [closeHistoryDetail, selectedHistory])
 
+  useEffect(() => {
+    setFeedbackVerdict(null)
+    setFeedbackError(null)
+    setFeedbackMessage(null)
+    setFeedbackSending(false)
+  }, [result?.analysis_id])
+
   return (
     <div className="app-shell">
       <div className="app-ambient" aria-hidden="true" />
@@ -180,7 +231,6 @@ export default function App() {
             onClick={() => setActiveTab('analyze')}
             className={`tab-button ${activeTab === 'analyze' ? 'active' : ''}`}
             role="tab"
-            aria-selected={activeTab === 'analyze'}
           >
             Анализ
           </button>
@@ -189,7 +239,6 @@ export default function App() {
             onClick={() => setActiveTab('history')}
             className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
             role="tab"
-            aria-selected={activeTab === 'history'}
           >
             История
           </button>
@@ -256,6 +305,37 @@ export default function App() {
                         </div>
                       ) : null}
                     </div>
+                  </div>
+
+                  <div className="feedback-actions">
+                    <span className="feedback-actions-label">Как оцените предсказание?</span>
+                    <div className="feedback-buttons">
+                      <button
+                        type="button"
+                        className={`feedback-btn ${feedbackVerdict === 'agree' ? 'active' : ''}`}
+                        onClick={() => handleFeedback('agree')}
+                        disabled={!telegramId || feedbackSending}
+                      >
+                        Триггер оценён верно
+                      </button>
+                      <button
+                        type="button"
+                        className={`feedback-btn ${feedbackVerdict === 'disagree' ? 'active' : ''}`}
+                        onClick={() => handleFeedback('disagree')}
+                        disabled={!telegramId || feedbackSending}
+                      >
+                        Не согласен с оценкой
+                      </button>
+                    </div>
+                    {!telegramId && (
+                      <div className="feedback-hint">
+                        Чтобы делиться откликом, откройте миниапп внутри Telegram и авторизуйтесь.
+                      </div>
+                    )}
+                    {feedbackError && <div className="feedback feedback-error">{feedbackError}</div>}
+                    {feedbackVerdict && !feedbackError && feedbackMessage && (
+                      <div className="feedback feedback-success">{feedbackMessage}</div>
+                    )}
                   </div>
                 </div>
               )}

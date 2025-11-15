@@ -23,3 +23,7 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Large local artifacts
+app.db
+data/training/baseline_with_news.csv

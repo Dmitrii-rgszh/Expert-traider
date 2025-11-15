@@ -1,0 +1,16 @@
+[
+  {
+    "seq_len": 48,
+    "learning_rate": 0.0005,
+    "batch_size": 128,
+    "logger_type": "tensorboard",
+    "mlflow_tags": ["grid=tech_v2", "variant=48_0.0005"]
+  },
+  {
+    "seq_len": 64,
+    "learning_rate": 0.0008,
+    "batch_size": 256,
+    "logger_type": "csv",
+    "mlflow_tags": ["grid=tech_v2", "variant=64_0.0008"]
+  }
+]

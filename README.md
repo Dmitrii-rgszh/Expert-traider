@@ -633,6 +633,15 @@ Backend:
 
 В будущем это можно использовать для дообучения модели.
 
+▶ Статус: добавлен API `POST /api/feedback`, таблица `analysis_feedback` (migration `c3d2f9f4cfec`) и две кнопки в Miniapp. Пользователь авторизуется через Telegram initData, а ответ сохраняется/обновляется; команда для обновления схемы:
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+После миграции можно собрать фронтенд (`npm run build` в `frontend/`) — в карточке появится блок «Как оцените предсказание?», который пишет фидбек и подсвечивает выбранный вариант.
+
 Техподготовка под следующие фичи
 
 Придумать и описать:
@@ -684,3 +693,75 @@ Backend + ML:
 не стыдная,
 
 более-менее разумно различает «жёсткий негатив», «позитив», «фон».
+
+## 11. Data Foundation (Sprint 0)
+
+1. **Raw история / Feature store конфигурация.**  
+	- `config/universe_core.json` задаёт core-тикеры, `config/feature_store.yaml` — описание feature_sets/timeframes (см. `docs/feature_store_v1.md`).  
+	- `tech_v2` расширяет `tech_v1` за счёт Bollinger Bands и Stochastic Oscillator; window_size и состав признаков целиком читаются из YAML.  
+	- CLI `python -m backend.scripts.ingestion.backfill_candles --start-date YYYY-MM-DD --end-date YYYY-MM-DD --secids SBER GAZP ... --timeframes 1m 5m 15m 1h 1d --chunk-days 14` заполняет `candles` и складывает CSV/parquet в `data/raw/candles/{SECID}/{timeframe}/`.  
+	- Prefect flow `candles-ingest-flow` (описан в `backend/scripts/scheduler/prefect_flows.py`) принимает `secids`, `timeframes`, `since/until`, `export_dir`, `min_ratio`, `fail_on_low`.
+
+2. **Prefect пайплайны features/labels.**  
+	- Flow `candles-and-features-flow` теперь содержит задачи: ingestion → окна (`build_feature_windows_task`) → экспорт снапшотов (`export_feature_snapshots_task`) → label-инг.  
+	- Регистрация деплоймента:  
+		```
+		python -m backend.scripts.scheduler.register_deployments \
+		  --flow-name candles-and-features-flow \
+		  --secids SBER GAZP LKOH GMKN \
+		  --window-days 2 \
+		  --snapshot-output-dir data/processed/features \
+		  --apply
+		```
+	- CLI поддерживает `--disable-snapshot-export`, `--snapshot-file-format feather`, `--snapshot-daily-partition false`.
+
+3. **Экспорт feature snapshots.**  
+	- Ручной экспорт: `python -m backend.scripts.features.export_snapshots --secids SBER GAZP --timeframe 1m --feature-set tech_v1 --start-date 2024-10-01T00:00:00+00:00 --end-date 2024-11-15T23:59:00+00:00 --output-dir data/processed/features --format parquet`.  
+	- Файлы складываются в `data/processed/features/{feature_set}/{timeframe}/YYYYMMDD.parquet` (или `snapshot_<start>_<end>.parquet`, если отключить daily partition).  
+	- Каждый экспорт регистрируется в `train_data_snapshots` (secid/timeframe/feature_set/rows), что позволяет проследить, какой объём попал в обучение.
+
+4. **Контроль качества данных.**  
+	- Свечи: `python -m backend.scripts.monitoring.data_quality_report --timeframe 1m --start-date 2024-10-01 --end-date 2024-11-15` → `docs/data_quality/candles_1m_2024-10-01_2024-11-15.json`.  
+	- Лейблы: `python -m backend.scripts.labels.build_labels ... --summary-json docs/data_quality/labels_basic_v1_1m_2024-10-01_2024-11-15.json --dry-run` даёт coverage/class balance без записи в БД.  
+	- Ноутбук `notebooks/data_quality.ipynb` загружает отчёты и строит heatmap по дням.
+	- Дополнительно: `python -m backend.scripts.monitoring.labels_eda --label-set intraday_v1 --timeframe 1m ... --output docs/data_quality/eda_intraday_v1_1m.json` и `... --label-set swing_v1 --timeframe 1h ... --output docs/data_quality/eda_swing_v1_1h.json` фиксируют coverage/expectancy по каждому горизонту.
+	- Для снапшотов Feature Store используем `python -m backend.scripts.monitoring.snapshot_report --feature-set tech_v2 --timeframe 1h --since 2024-10-01T00:00:00+00:00 --output docs/data_quality/train_snapshots_tech_v2_1h.json`.
+
+5. **Документация и чек-лист.**  
+	- `docs/feature_store_v1.md` описывает архитектуру Feature Store, `config/label_sets.yaml` — пресеты label_set (basic_v1, intraday_v1, swing_v1).  
+	- Этот раздел и `ML.md` обновлены: фиксируем изменения, даты и ссылки на коммиты.
+
+## 12. ML Infra & Training Flow
+
+- **Flow `train-temporal-model-flow`.**  
+	1. Готовит baseline-датасет (`prepare_baseline_dataset_task`, параметры из `config/feature_store.yaml`/`config/label_sets.yaml`).  
+	2. Запускает `train_temporal_cnn.py` с нужными гиперпараметрами и (опционально) MLflow.  
+	3. Регистрируется через  
+		```powershell
+		python -m backend.scripts.scheduler.register_deployments `
+		  --flow-name train-temporal-model-flow `
+		  --secids SBER GAZP `
+		  --train-feature-set tech_v1 `
+		  --train-label-set basic_v1 `
+		  --train-start-date 2024-10-01 `
+		  --train-end-date 2024-11-15 `
+		  --train-mlflow-tracking-uri http://localhost:5000 `
+		  --train-mlflow-experiment TemporalCNN `
+		  --apply
+		```
+
+		> ⚠️ **Windows + Prefect CLI:** перед любыми `prefect ...` командами выполняйте `chcp 65001`, чтобы консоль не падала на Unicode-бокс-символах (CP1251 не поддерживает их вывод). Добавьте `chcp 65001` в профиль PowerShell, если часто запускаете деплойменты вручную.
+- **MLflow поддержка.**  
+	`backend/scripts/training/train_temporal_cnn.py` принимает `--mlflow-tracking-uri`, `--mlflow-experiment`, `--mlflow-run-name`, `--mlflow-tags key=value`. При указании URI автоматически логируются параметры, метрики (ROC-AUC, PR-AUC, accuracy и т.д.) и артефакты (`logs/temporal_cnn`).  
+- **Dry-run лейблов.**  
+	`backend/scripts/labels/build_labels.py` умеет `--dry-run` для генерации отчётов без записи в DB — удобно для Prefect-валидаторов и отчётов в `docs/data_quality/`.
+
+
+> **Новое:** Flow 	rain-temporal-model-flow поддерживает grid-search и уведомления. Передавайте --train-grid-json path/to/grid.json (список словарей с гиперпараметрами) и --train-notification-url https://hooks.slack.com/..., чтобы запускать несколько тренировок и получать сообщение с метриками (ROC/PR/accuracy) после каждой. ackend/scripts/training/train_temporal_cnn.py логирует метрики в MLflow (если указан --train-mlflow-tracking-uri) и сохраняет TensorBoard/CSV + ROC-кривые в logs/temporal_cnn.
+
+
+## 13. Temporal Model Inference
+
+- ackend/app/ml/temporal_inference.py содержит сервис для загрузки чекпоинта Temporal CNN. Установите переменные TEMPORAL_MODEL_CHECKPOINT, TEMPORAL_FEATURE_COLUMNS (через запятую) и TEMPORAL_SEQ_LEN, после чего используйте ackend/app/ml/service.py:get_temporal_model_service() внутри API.
+- Пример: TEMPORAL_MODEL_CHECKPOINT=logs/temporal_cnn/checkpoints/temporal-cnn-epoch.ckpt и TEMPORAL_FEATURE_COLUMNS=return_1,sma_ratio_5_20,...,news_count_60m.
+- Сервис возвращает вероятность long-сигнала и может быть вызван из FastAPI эндпойнта /api/analyze_ticker.

@@ -1,0 +1,6 @@
+dropout: 0.1
+feature_dim: 28
+hidden_dim: 256
+model_type: tft
+num_heads: 8
+seq_len: 32

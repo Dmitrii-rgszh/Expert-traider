@@ -10,8 +10,19 @@ from typing import Any, Iterable, Optional
 import httpx
 from sqlalchemy import select
 
+if __package__ in (None, ""):  # pragma: no cover - allows `python backend/.../news.py`
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[3]
+    if str(repo_root) not in sys.path:
+        sys.path.append(str(repo_root))
+
 from backend.app.models import GlobalRiskEvent, NewsEvent, NewsSource, RiskAlert
-from .base import HttpSource, IngestionStats, fetch_json, session_scope, logger
+
+try:  # pragma: no cover - fallback for relative import
+    from .base import HttpSource, IngestionStats, fetch_json, session_scope, logger
+except ImportError:  # pragma: no cover
+    from backend.scripts.ingestion.base import HttpSource, IngestionStats, fetch_json, session_scope, logger
 
 MOEX_ISS_BASE_URL = os.getenv("MOEX_ISS_BASE_URL", "https://iss.moex.com/iss")
 MOEX_NEWS_LANG = os.getenv("MOEX_NEWS_LANG", "ru")

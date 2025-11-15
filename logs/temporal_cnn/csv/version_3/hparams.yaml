@@ -1,0 +1,5 @@
+dropout: 0.2
+feature_dim: 8
+lr: 0.001
+pos_weight: 16.807923930269414
+seq_len: 32

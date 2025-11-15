@@ -1,0 +1,22 @@
+{
+  "core_equities": [
+    "SBER",
+    "GAZP",
+    "LKOH",
+    "GMKN",
+    "ROSN",
+    "NVTK",
+    "TATN",
+    "CHMF",
+    "YNDX"
+  ],
+  "index_benchmarks": [
+    "IMOEX"
+  ],
+  "default_board": "TQBR",
+  "default_timeframes": ["1m", "5m", "15m", "1h", "1d"],
+  "metadata": {
+    "description": "Core securities monitored by the AI trader data pipelines",
+    "last_updated": "2024-08-01"
+  }
+}

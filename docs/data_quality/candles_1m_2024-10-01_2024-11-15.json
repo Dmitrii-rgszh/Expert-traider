@@ -1,0 +1,145 @@
+{
+  "timeframe": "1m",
+  "start": "2024-10-01T00:00:00+00:00",
+  "end": "2024-11-15T23:59:59.999999+00:00",
+  "generated_at": "2025-11-15T15:33:05.842984+00:00",
+  "secids": {
+    "CHMF": {
+      "secid": "CHMF",
+      "rows": 27236,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.053996983408748,
+      "min_bars_per_day": 681,
+      "median_bars_per_day": 806.5,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "GAZP": {
+      "secid": "GAZP",
+      "rows": 27456,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.070588235294118,
+      "min_bars_per_day": 682,
+      "median_bars_per_day": 812.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "GMKN": {
+      "secid": "GMKN",
+      "rows": 27354,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.06289592760181,
+      "min_bars_per_day": 681,
+      "median_bars_per_day": 809.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "LKOH": {
+      "secid": "LKOH",
+      "rows": 27401,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.0664404223227755,
+      "min_bars_per_day": 681,
+      "median_bars_per_day": 811.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "NVTK": {
+      "secid": "NVTK",
+      "rows": 27408,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.0669683257918554,
+      "min_bars_per_day": 682,
+      "median_bars_per_day": 811.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "ROSN": {
+      "secid": "ROSN",
+      "rows": 27472,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.071794871794872,
+      "min_bars_per_day": 682,
+      "median_bars_per_day": 812.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "SBER": {
+      "secid": "SBER",
+      "rows": 27467,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.0714177978883863,
+      "min_bars_per_day": 682,
+      "median_bars_per_day": 812.0,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    },
+    "TATN": {
+      "secid": "TATN",
+      "rows": 27420,
+      "days_observed": 34,
+      "expected_business_days": 34,
+      "coverage_ratio": 2.067873303167421,
+      "min_bars_per_day": 682,
+      "median_bars_per_day": 810.5,
+      "max_bars_per_day": 812,
+      "max_gap_minutes": 3490.0,
+      "first_timestamp": "2024-10-01T09:59:00+00:00",
+      "last_timestamp": "2024-11-15T23:49:00+00:00",
+      "missing_days": [
+        "2024-11-04"
+      ],
+      "missing_days_count": 1
+    }
+  },
+  "text_summary": "Candles quality report timeframe=1m 2024-10-01..2024-11-15\n- CHMF: rows=27236 coverage=205.40% median/day=806 missing_days=1\n- GAZP: rows=27456 coverage=207.06% median/day=812 missing_days=1\n- GMKN: rows=27354 coverage=206.29% median/day=809 missing_days=1\n- LKOH: rows=27401 coverage=206.64% median/day=811 missing_days=1\n- NVTK: rows=27408 coverage=206.70% median/day=811 missing_days=1\n- ROSN: rows=27472 coverage=207.18% median/day=812 missing_days=1\n- SBER: rows=27467 coverage=207.14% median/day=812 missing_days=1\n- TATN: rows=27420 coverage=206.79% median/day=810 missing_days=1"
+}
