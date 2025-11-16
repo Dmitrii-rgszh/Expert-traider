@@ -11,6 +11,18 @@ label_sets:
     take_profit: 0.015
     stop_loss: 0.008
     description: Более агрессивные внутридневные метки.
+  intraday_v1_5m:
+    timeframe: 5m
+    horizons: [30, 60, 120]
+    take_profit: 0.015
+    stop_loss: 0.008
+    description: Интрадей-метки для агрегатов 5m (та же логика, что и intraday_v1, но с 5-минутными барами).
+  intraday_v1_15m:
+    timeframe: 15m
+    horizons: [45, 90, 180]
+    take_profit: 0.018
+    stop_loss: 0.01
+    description: Интрадей-метки на 15m барах с удлинёнными горизонтами (45/90/180 минут).
   swing_v1:
     timeframe: 1h
     horizons: [240, 720, 1440]

@@ -1,0 +1,47 @@
+{
+  "updated_at": "2025-11-16",
+  "window": "2025-08-18 to 2025-11-16",
+  "exclusions": {
+    "intraday_blacklist": [
+      "AMEZ"
+    ],
+    "notes": "AMEZ исключена для intraday: MOEX не отдаёт 1m после 2025-08"
+  },
+  "batches": [
+    {
+      "type": "equities_intraday",
+      "tickers": [
+        "AFKS",
+        "AFLT",
+        "AKRN",
+        "ALRS"
+      ],
+      "timeframes": [
+        "1m",
+        "5m",
+        "15m"
+      ],
+      "status": "complete",
+      "notes": "1m MOEX download plus local resample to 5m/15m stored under data/raw/candles/<secid>"
+    },
+    {
+      "type": "equities_intraday",
+      "tickers": [
+        "AMEZ",
+        "APRI",
+        "APTK",
+        "AQUA"
+      ],
+      "timeframes": [
+        "1m",
+        "5m",
+        "15m"
+      ],
+      "status": "complete",
+      "exclusions": [
+        "AMEZ"
+      ],
+      "notes": "APRI/APTK/AQUA finished; AMEZ lacks 1m data on MOEX so excluded from intraday window (see config/universe_intraday_custom.json)"
+    }
+  ]
+}

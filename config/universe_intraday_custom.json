@@ -1,0 +1,18 @@
+{
+  "generated_at": "2025-11-16T00:00:00+00:00",
+  "description": "Custom intraday universe for AFKS/AFLT/... campaign; AMEZ excluded because MOEX lacks 1m bars after Aug 2025.",
+  "secids": [
+    "AFKS",
+    "AFLT",
+    "AKRN",
+    "ALRS",
+    "AMEZ",
+    "APRI",
+    "APTK",
+    "AQUA"
+  ],
+  "intraday_blacklist": [
+    "AMEZ"
+  ],
+  "window": "2025-08-18..2025-11-16"
+}

@@ -15,11 +15,20 @@ DEFAULT_EXPORT_DIR = Path("data/raw/candles")
 
 def load_secids(secids: Sequence[str], secids_file: Path | None) -> list[str]:
     collected: list[str] = [sec.upper() for sec in secids]
+    excluded: set[str] = set()
     if secids_file and secids_file.exists():
         payload = json.loads(secids_file.read_text(encoding="utf-8"))
-        file_secids = payload.get("core_equities") or payload.get("secids") or []
+        file_secids = (
+            payload.get("core_equities")
+            or payload.get("secids")
+            or (payload.get("universe") or {}).get("equities")
+            or []
+        )
+        excluded.update(payload.get("exclude") or [])
+        excluded.update(payload.get("intraday_exclude") or [])
+        excluded.update(payload.get("intraday_blacklist") or [])
         collected.extend(sec.upper() for sec in file_secids)
-    unique = sorted({sec for sec in collected if sec})
+    unique = sorted({sec for sec in collected if sec and sec not in excluded})
     if not unique:
         raise ValueError("No tickers provided. Specify --secids or --secids-file")
     return unique

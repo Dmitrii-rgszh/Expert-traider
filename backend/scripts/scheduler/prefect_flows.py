@@ -317,6 +317,11 @@ def train_temporal_cnn_task(
     dropout: float = 0.2,
     walk_forward_splits: Optional[list[dict[str, object]]] = None,
     report_dir: str = "docs/modeling/train_runs",
+    loss_fn: str = "bce",
+    focal_gamma: float = 2.0,
+    focal_alpha: Optional[float] = None,
+    pos_weight_override: Optional[float] = None,
+    pos_weight_scale: float = 1.0,
 ) -> dict[str, Any]:
     args = SimpleNamespace(
         dataset_path=Path(dataset_path),
@@ -346,6 +351,11 @@ def train_temporal_cnn_task(
         walk_forward_splits=walk_forward_splits,
         walk_forward_json=None,
         report_dir=Path(report_dir),
+        loss_fn=loss_fn,
+        focal_gamma=focal_gamma,
+        focal_alpha=focal_alpha,
+        pos_weight_override=pos_weight_override,
+        pos_weight_scale=pos_weight_scale,
     )
     metrics = train_temporal_cnn(args)
     logger.info("Temporal CNN metrics: %s", metrics)
@@ -581,6 +591,11 @@ def train_temporal_model_flow(
     dropout: float = 0.2,
     walk_forward_splits: Optional[list[dict[str, object]]] = None,
     report_dir: str = "docs/modeling/train_runs",
+    loss_fn: str = "bce",
+    focal_gamma: float = 2.0,
+    focal_alpha: Optional[float] = None,
+    pos_weight_override: Optional[float] = None,
+    pos_weight_scale: float = 1.0,
 ) -> None:
     today = date.today()
     start_dt = parse_date(start_date) if start_date else today - timedelta(days=30)
@@ -621,6 +636,11 @@ def train_temporal_model_flow(
         "dropout": dropout,
         "walk_forward_splits": walk_forward_splits,
         "report_dir": report_dir,
+        "loss_fn": loss_fn,
+        "focal_gamma": focal_gamma,
+        "focal_alpha": focal_alpha,
+        "pos_weight_override": pos_weight_override,
+        "pos_weight_scale": pos_weight_scale,
     }
     grid = train_grid or [{}]
     metrics_futures: list[PrefectFuture] = []

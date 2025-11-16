@@ -131,6 +131,16 @@ def parse_args() -> argparse.Namespace:
         default=[60, 240, 1440],
         help="Rolling windows (minutes) for news features (default: 60 240 1440)",
     )
+    parser.add_argument(
+        "--horizon-filter",
+        type=int,
+        help="If set, keep only rows with this horizon_minutes value",
+    )
+    parser.add_argument(
+        "--one-hot-horizon",
+        action="store_true",
+        help="If set, add one-hot columns for horizon_minutes and keep them as features",
+    )
     return parser.parse_args()
 
 
@@ -144,6 +154,15 @@ def main() -> None:
     if df.empty:
         print("No joined rows found for the requested interval.")
         return
+
+    if args.horizon_filter is not None:
+        df = df[df["horizon_minutes"] == args.horizon_filter].copy()
+        print(f"Filtered to horizon_minutes={args.horizon_filter}, {len(df)} rows remaining.")
+
+    if args.one_hot_horizon:
+        dummies = pd.get_dummies(df["horizon_minutes"], prefix="horizon", dtype=float)
+        df = pd.concat([df, dummies], axis=1)
+        print(f"Added one-hot horizon columns: {list(dummies.columns)}")
 
     if args.include_news_features:
         windows = args.news_windows or [60, 240, 1440]

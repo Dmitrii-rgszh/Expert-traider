@@ -118,8 +118,26 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model-type", choices=["tcn", "tft"], default="tcn", help="Which architecture to train")
     parser.add_argument("--hidden-dim", type=int, default=128, help="Hidden size for transformer/gru blocks")
+    parser.add_argument("--num-layers", type=int, default=2, help="Number of convolutional layers for TCN")
     parser.add_argument("--attn-heads", type=int, default=4, help="Attention heads for TFT model")
     parser.add_argument("--dropout", type=float, default=0.2, help="Dropout applied inside the model")
+    parser.add_argument(
+        "--loss-fn",
+        choices=["bce", "focal"],
+        default="bce",
+        help="Loss function to optimize (binary cross-entropy or focal)",
+    )
+    parser.add_argument(
+        "--focal-gamma",
+        type=float,
+        default=2.0,
+        help="Gamma parameter for focal loss (only used when --loss-fn focal)",
+    )
+    parser.add_argument(
+        "--focal-alpha",
+        type=float,
+        help="Positive-class weight for focal loss; defaults to value derived from pos_weight",
+    )
     parser.add_argument(
         "--plot-roc",
         action="store_true",
@@ -143,6 +161,17 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("docs/modeling/train_runs"),
         help="Directory where JSON training reports will be stored",
+    )
+    parser.add_argument(
+        "--pos-weight-override",
+        type=float,
+        help="If set, override automatically computed positive class weight with this value",
+    )
+    parser.add_argument(
+        "--pos-weight-scale",
+        type=float,
+        default=1.0,
+        help="Multiplier applied to auto-computed pos_weight (use >1 to upweight positives)",
     )
     return parser.parse_args()
 
@@ -171,6 +200,8 @@ class BaselineDataModule(pl.LightningDataModule):
         num_workers: int,
         split_config: Optional[dict[str, tuple[pd.Timestamp, pd.Timestamp]]] = None,
         min_val_fraction: float = 0.1,
+        pos_weight_override: Optional[float] = None,
+        pos_weight_scale: float = 1.0,
     ) -> None:
         super().__init__()
         self.df = df
@@ -182,6 +213,8 @@ class BaselineDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.split_config = split_config
         self.min_val_fraction = min_val_fraction
+        self.pos_weight_override = pos_weight_override
+        self.pos_weight_scale = pos_weight_scale
         self.train_ds: Optional[SlidingWindowDataset] = None
         self.val_ds: Optional[SlidingWindowDataset] = None
         self.test_ds: Optional[SlidingWindowDataset] = None
@@ -222,7 +255,9 @@ class BaselineDataModule(pl.LightningDataModule):
             raise ValueError("Training split produced zero sequences. Reduce --seq-len or widen train window.")
         pos = float(self.train_ds.labels.sum().item())
         neg = float(len(self.train_ds) - pos)
-        self.train_pos_weight = neg / pos if pos > 0 else 1.0
+        weight = neg / pos if pos > 0 else 1.0
+        weight *= self.pos_weight_scale
+        self.train_pos_weight = float(self.pos_weight_override) if self.pos_weight_override is not None else weight
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -287,10 +322,20 @@ class BaselineDataModule(pl.LightningDataModule):
 
 
 class BaseTemporalClassifier(pl.LightningModule):
-    def __init__(self, lr: float, pos_weight: float) -> None:
+    def __init__(
+        self,
+        lr: float,
+        pos_weight: float,
+        loss_fn: str = "bce",
+        focal_gamma: float = 2.0,
+        focal_alpha: Optional[float] = None,
+    ) -> None:
         super().__init__()
         self.lr = lr
         self.register_buffer("pos_weight", torch.tensor(pos_weight, dtype=torch.float32))
+        self.loss_fn = loss_fn
+        self.focal_gamma = focal_gamma
+        self.focal_alpha = focal_alpha
         self.val_auc = BinaryAUROC()
         self.val_ap = BinaryAveragePrecision()
         self.val_precision = BinaryPrecision()
@@ -299,9 +344,26 @@ class BaseTemporalClassifier(pl.LightningModule):
     def _step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         inputs, targets = batch
         logits = self(inputs).squeeze(-1)
-        loss = F.binary_cross_entropy_with_logits(logits, targets, pos_weight=self.pos_weight)
         probs = torch.sigmoid(logits)
+        loss = self._compute_loss(logits, targets)
         return loss, probs, targets
+
+    def _compute_loss(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        if self.loss_fn == "focal":
+            probs = torch.sigmoid(logits)
+            targets = targets.float()
+            pt = torch.where(targets == 1, probs, 1 - probs).clamp(min=1e-8, max=1 - 1e-8)
+            alpha_val = self.focal_alpha
+            if alpha_val is None:
+                pos_w = float(self.pos_weight.item())
+                alpha_val = pos_w / (pos_w + 1.0) if pos_w > 0 else 0.5
+            alpha_pos = torch.as_tensor(alpha_val, device=logits.device, dtype=logits.dtype)
+            alpha_neg = torch.as_tensor(1.0 - alpha_val, device=logits.device, dtype=logits.dtype)
+            alpha_t = torch.where(targets == 1, alpha_pos, alpha_neg)
+            focal_term = torch.pow(1 - pt, self.focal_gamma)
+            loss = -alpha_t * focal_term * torch.log(pt)
+            return loss.mean()
+        return F.binary_cross_entropy_with_logits(logits, targets, pos_weight=self.pos_weight)
 
     def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         loss, _, _ = self._step(batch)
@@ -340,35 +402,61 @@ class BaseTemporalClassifier(pl.LightningModule):
 
 
 class TemporalCNN(BaseTemporalClassifier):
-    def __init__(self, feature_dim: int, seq_len: int, lr: float, pos_weight: float, dropout: float = 0.2) -> None:
-        super().__init__(lr, pos_weight)
+    def __init__(
+        self,
+        feature_dim: int,
+        seq_len: int,
+        lr: float,
+        pos_weight: float,
+        hidden_dim: int = 128,
+        num_layers: int = 2,
+        dropout: float = 0.2,
+        loss_fn: str = "bce",
+        focal_gamma: float = 2.0,
+        focal_alpha: Optional[float] = None,
+    ) -> None:
+        super().__init__(lr, pos_weight, loss_fn=loss_fn, focal_gamma=focal_gamma, focal_alpha=focal_alpha)
         self.save_hyperparameters(
             {
                 "model_type": "tcn",
                 "feature_dim": feature_dim,
                 "seq_len": seq_len,
+                "hidden_dim": hidden_dim,
+                "num_layers": num_layers,
                 "dropout": dropout,
+                "loss_fn": loss_fn,
+                "focal_gamma": focal_gamma,
+                "focal_alpha": focal_alpha,
             }
         )
         self.feature_dim = feature_dim
         self.seq_len = seq_len
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
         self.dropout = dropout
-        self.conv = nn.Sequential(
-            nn.Conv1d(feature_dim, 64, kernel_size=3, padding=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Conv1d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),
-        )
+        
+        # Build conv layers dynamically based on num_layers
+        layers = []
+        in_channels = feature_dim
+        for i in range(num_layers):
+            out_channels = hidden_dim if i == num_layers - 1 else hidden_dim // 2
+            layers.extend([
+                nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
+                nn.BatchNorm1d(out_channels),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+            ])
+            in_channels = out_channels
+        
+        layers.append(nn.AdaptiveAvgPool1d(1))
+        self.conv = nn.Sequential(*layers)
+        
         self.head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128, 64),
+            nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(64, 1),
+            nn.Linear(hidden_dim // 2, 1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401 - inference hook
@@ -389,8 +477,11 @@ class TemporalFusionTransformer(BaseTemporalClassifier):
         hidden_dim: int = 128,
         num_heads: int = 4,
         dropout: float = 0.2,
+        loss_fn: str = "bce",
+        focal_gamma: float = 2.0,
+        focal_alpha: Optional[float] = None,
     ) -> None:
-        super().__init__(lr, pos_weight)
+        super().__init__(lr, pos_weight, loss_fn=loss_fn, focal_gamma=focal_gamma, focal_alpha=focal_alpha)
         if hidden_dim % num_heads != 0:
             raise ValueError("hidden_dim must be divisible by attn heads")
         self.save_hyperparameters(
@@ -401,6 +492,9 @@ class TemporalFusionTransformer(BaseTemporalClassifier):
                 "hidden_dim": hidden_dim,
                 "num_heads": num_heads,
                 "dropout": dropout,
+                "loss_fn": loss_fn,
+                "focal_gamma": focal_gamma,
+                "focal_alpha": focal_alpha,
             }
         )
         self.feature_dim = feature_dim
@@ -543,6 +637,8 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
             split_name,
             split_windows,
         )
+        train_pos = int(datamodule.train_ds.labels.sum().item()) if datamodule.train_ds else 0
+        train_neg = int(len(datamodule.train_ds) - train_pos) if datamodule.train_ds else 0
         run_entry = {
             "name": split_name,
             "metrics": metrics,
@@ -556,10 +652,18 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
                 "train_sequences": int(len(datamodule.train_ds) if datamodule.train_ds else 0),
                 "val_sequences": int(len(datamodule.val_ds) if datamodule.val_ds else 0),
                 "test_sequences": int(len(datamodule.test_ds) if datamodule.test_ds else 0),
+                "train_positive": train_pos,
+                "train_negative": train_neg,
+                "pos_weight": float(datamodule.train_pos_weight),
             },
         }
         if metrics.get("roc_curve_path"):
             run_entry["roc_curve_path"] = metrics["roc_curve_path"]
+        print(
+            f"[{split_name}] train_seq={run_entry['counts']['train_sequences']} "
+            f"pos={train_pos} neg={train_neg} pos_weight={datamodule.train_pos_weight:.2f} "
+            f"loss_fn={args.loss_fn}"
+        )
         results.append(run_entry)
     report_path = _write_training_report(args, results)
     summary = {
@@ -587,6 +691,8 @@ def _train_single_run(
         val_ratio=args.val_ratio,
         num_workers=args.num_workers,
         split_config=split_windows or None,
+        pos_weight_override=args.pos_weight_override,
+        pos_weight_scale=args.pos_weight_scale,
     )
     datamodule.setup()
     has_val_sequences = datamodule.val_ds is not None and len(datamodule.val_ds) > 0
@@ -655,6 +761,12 @@ def _train_single_run(
                 "val_ratio": args.val_ratio,
                 "model_type": args.model_type,
                 "split_name": split_name,
+                "loss_fn": args.loss_fn,
+                "focal_gamma": args.focal_gamma,
+                "focal_alpha": args.focal_alpha,
+                "pos_weight": datamodule.train_pos_weight,
+                "pos_weight_override": args.pos_weight_override,
+                "pos_weight_scale": args.pos_weight_scale,
             }
         )
     trainer.fit(model, datamodule=datamodule)
@@ -678,20 +790,28 @@ def _train_single_run(
 def _build_model(args: argparse.Namespace, feature_dim: int, pos_weight: float) -> pl.LightningModule:
     if args.model_type == "tft":
         return TemporalFusionTransformer(
-            feature_dim=feature_dim,
-            seq_len=args.seq_len,
-            lr=args.learning_rate,
-            pos_weight=pos_weight,
-            hidden_dim=args.hidden_dim,
-            num_heads=args.attn_heads,
-            dropout=args.dropout,
-        )
+        feature_dim=feature_dim,
+        seq_len=args.seq_len,
+        lr=args.learning_rate,
+        pos_weight=pos_weight,
+        hidden_dim=args.hidden_dim,
+        num_heads=args.attn_heads,
+        dropout=args.dropout,
+        loss_fn=args.loss_fn,
+        focal_gamma=args.focal_gamma,
+        focal_alpha=args.focal_alpha,
+    )
     return TemporalCNN(
         feature_dim=feature_dim,
         seq_len=args.seq_len,
         lr=args.learning_rate,
         pos_weight=pos_weight,
+        hidden_dim=args.hidden_dim,
+        num_layers=args.num_layers,
         dropout=args.dropout,
+        loss_fn=args.loss_fn,
+        focal_gamma=args.focal_gamma,
+        focal_alpha=args.focal_alpha,
     )
 
 

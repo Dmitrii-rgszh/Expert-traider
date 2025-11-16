@@ -11,7 +11,7 @@ import pandas as pd
 from sqlalchemy import delete, select
 
 from backend.app.db.session import SessionLocal
-from backend.app.models import Candle, FeatureNumeric, FeatureWindow
+from backend.app.models import Candle, FeatureNumeric, FeatureWindow, IndexCandle
 from backend.scripts.features.registry import FeatureStoreConfig
 
 BAR_MINUTES = {
@@ -44,6 +44,15 @@ ALL_FEATURE_COLUMNS = [
     "bollinger_band_pct",
     "stoch_k_14",
     "stoch_d_3",
+    # New features for tech_v3
+    "return_vs_imoex",
+    "return_vs_rts",
+    "volatility_60",
+    "volatility_120",
+    "ema_ratio_5_20",
+    "ema_ratio_20_60",
+    "atr_ratio_5_14",
+    "atr_ratio_14_30",
 ]
 
 
@@ -52,6 +61,41 @@ def timeframe_to_minutes(timeframe: str) -> int:
         return BAR_MINUTES[timeframe]
     except KeyError as exc:  # pragma: no cover - defensive guard
         raise ValueError(f"Unsupported timeframe '{timeframe}'") from exc
+
+
+def load_index_candles(
+    index_code: str,
+    timeframe: str,
+    start: datetime,
+    end: datetime,
+) -> pd.DataFrame:
+    """Load index candles (IMOEX, RTSI) for relative return calculation."""
+    with SessionLocal() as session:
+        stmt = (
+            select(IndexCandle)
+            .where(
+                IndexCandle.index_code == index_code,
+                IndexCandle.timeframe == timeframe,
+                IndexCandle.timestamp >= start,
+                IndexCandle.timestamp <= end,
+            )
+            .order_by(IndexCandle.timestamp.asc())
+        )
+        rows = session.execute(stmt).scalars().all()
+    
+    if not rows:
+        return pd.DataFrame()
+    
+    records = [
+        {
+            "timestamp": row.timestamp,
+            "close": float(row.close),
+        }
+        for row in rows
+    ]
+    df = pd.DataFrame.from_records(records)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    return df
 
 
 def load_candles(
@@ -154,7 +198,13 @@ def _resample_from_lower_timeframe(
     return resampled
 
 
-def compute_features(df: pd.DataFrame, required_features: Sequence[str] | None = None) -> pd.DataFrame:
+def compute_features(
+    df: pd.DataFrame,
+    required_features: Sequence[str] | None = None,
+    timeframe: str | None = None,
+    imoex_df: pd.DataFrame | None = None,
+    rts_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     work = df.copy()
     work.set_index("timestamp", inplace=True)
     work.sort_index(inplace=True)
@@ -247,6 +297,41 @@ def compute_features(df: pd.DataFrame, required_features: Sequence[str] | None =
     work["stoch_k_14"] = stoch_k
     work["stoch_d_3"] = stoch_k.rolling(window=3, min_periods=3).mean()
 
+    # New features for tech_v3
+    # Relative returns vs indices
+    if imoex_df is not None and not imoex_df.empty:
+        imoex_indexed = imoex_df.set_index("timestamp")
+        imoex_indexed = imoex_indexed.reindex(work.index, method="ffill")
+        imoex_return = imoex_indexed["close"].pct_change().fillna(0.0)
+        work["return_vs_imoex"] = work["return_1"] - imoex_return
+    else:
+        work["return_vs_imoex"] = 0.0
+    
+    if rts_df is not None and not rts_df.empty:
+        rts_indexed = rts_df.set_index("timestamp")
+        rts_indexed = rts_indexed.reindex(work.index, method="ffill")
+        rts_return = rts_indexed["close"].pct_change().fillna(0.0)
+        work["return_vs_rts"] = work["return_1"] - rts_return
+    else:
+        work["return_vs_rts"] = 0.0
+    
+    # Long-window volatility
+    work["volatility_60"] = work["return_1"].rolling(window=60, min_periods=60).std().fillna(0.0)
+    work["volatility_120"] = work["return_1"].rolling(window=120, min_periods=120).std().fillna(0.0)
+    
+    # Multi-timeframe EMA ratios
+    ema_5 = work["close"].ewm(span=5, adjust=False).mean()
+    ema_20 = work["close"].ewm(span=20, adjust=False).mean()
+    ema_60 = work["close"].ewm(span=60, adjust=False).mean()
+    work["ema_ratio_5_20"] = (ema_5 / ema_20) - 1
+    work["ema_ratio_20_60"] = (ema_20 / ema_60) - 1
+    
+    # Multi-timeframe ATR ratios
+    atr_5 = true_range.rolling(window=5, min_periods=5).mean()
+    atr_30 = true_range.rolling(window=30, min_periods=30).mean()
+    work["atr_ratio_5_14"] = (atr_5 / work["atr_14"]).replace([np.inf, -np.inf], np.nan)
+    work["atr_ratio_14_30"] = (work["atr_14"] / atr_30).replace([np.inf, -np.inf], np.nan)
+
     work.replace([np.inf, -np.inf], np.nan, inplace=True)
     needed_columns = [col for col in target_features if col in work.columns]
     if needed_columns:
@@ -322,12 +407,24 @@ def run_pipeline(
     window_size: int,
     feature_columns: Sequence[str],
 ) -> None:
+    # Load index data once for all tickers
+    print("Loading index data...")
+    imoex_df = load_index_candles("IMOEX", timeframe, start, end)
+    rts_df = load_index_candles("RTSI", timeframe, start, end)
+    print(f"IMOEX: {len(imoex_df)} candles, RTSI: {len(rts_df)} candles")
+    
     total = 0
     for secid in secids:
         candles = load_candles(secid, timeframe, start, end)
         if candles.empty:
             continue
-        features = compute_features(candles, required_features=feature_columns)
+        features = compute_features(
+            candles,
+            required_features=feature_columns,
+            timeframe=timeframe,
+            imoex_df=imoex_df,
+            rts_df=rts_df,
+        )
         inserted = persist_features(
             secid,
             timeframe,

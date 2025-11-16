@@ -1,0 +1,13 @@
+{
+  "predictions_csv": "data\\modeling\\val_predictions_synthetic.csv",
+  "target_precision": 0.75,
+  "avg_precision_score": 0.7879823065363629,
+  "roc_auc_score": 0.9930235785865174,
+  "num_samples": 26906,
+  "num_positives": 137,
+  "positive_rate": 0.005091801085259793,
+  "calibrated_threshold": 0.7519103301821081,
+  "achieved_precision": 0.75,
+  "achieved_recall": 0.656934306569343,
+  "f1_score": 0.7003891050583658
+}

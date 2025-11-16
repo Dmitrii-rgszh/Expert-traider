@@ -1,0 +1,41 @@
+{
+  "generated_at": "2025-11-16T17:32:03.093935+00:00",
+  "dataset_path": "data\\training\\dataset_intraday_v1_5m_allhorizons_tech_v3_2025q4_v2.csv",
+  "model_type": "tcn",
+  "seq_len": 32,
+  "batch_size": 128,
+  "max_epochs": 8,
+  "learning_rate": 0.0005,
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "walk_forward": [
+    {
+      "name": "full_window",
+      "metrics": {
+        "accuracy": 0.9365319541115299,
+        "precision": 0.10275590551181102,
+        "recall": 0.903114186851211,
+        "f1": 0.18451749734888653,
+        "support": 36349,
+        "classification_report": "              precision    recall  f1-score   support\n\n         0.0     0.9992    0.9368    0.9670     36060\n         1.0     0.1028    0.9031    0.1845       289\n\n    accuracy                         0.9365     36349\n   macro avg     0.5510    0.9200    0.5757     36349\nweighted avg     0.9920    0.9365    0.9608     36349\n",
+        "roc_auc": 0.9722860016082384,
+        "pr_auc": 0.5377606247586791,
+        "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_v1_5m_tech_v3_deep_v2\\tcn_full_window\\checkpoints\\tcn-full_window-epoch=07.ckpt"
+      },
+      "log_dir": "logs\\temporal_cnn\\intraday_v1_5m_tech_v3_deep_v2\\tcn_full_window",
+      "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_v1_5m_tech_v3_deep_v2\\tcn_full_window\\checkpoints\\tcn-full_window-epoch=07.ckpt",
+      "split_windows": {},
+      "counts": {
+        "train_rows": 170640,
+        "val_rows": 36566,
+        "test_rows": 36566,
+        "train_sequences": 170423,
+        "val_sequences": 36349,
+        "test_sequences": 36349,
+        "train_positive": 3277,
+        "train_negative": 167146,
+        "pos_weight": 76.50869697894416
+      }
+    }
+  ]
+}

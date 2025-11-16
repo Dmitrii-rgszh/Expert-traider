@@ -1,0 +1,33 @@
+{
+  "comment": "Маппинг тикеров на сектора для расчета sector breadth features",
+  "sectors": {
+    "oil_gas": {
+      "name": "Нефть и газ",
+      "tickers": ["GAZP", "LKOH", "ROSN", "NVTK", "TATN", "SNGS"]
+    },
+    "metals_mining": {
+      "name": "Металлургия и добыча",
+      "tickers": ["GMKN", "NLMK", "MAGN", "CHMF", "PLZL", "POLY", "PHOR", "AKRN"]
+    },
+    "finance": {
+      "name": "Финансы",
+      "tickers": ["SBER", "VTBR", "MOEX"]
+    },
+    "telecom_tech": {
+      "name": "Телеком и технологии",
+      "tickers": ["MTSS", "RTKM", "YNDX", "VKCO"]
+    },
+    "consumer": {
+      "name": "Потребительский сектор",
+      "tickers": ["MGNT", "FIVE", "LENT", "AFKS", "AFLT", "ALRS"]
+    },
+    "utilities": {
+      "name": "Энергетика и коммунальные услуги",
+      "tickers": ["HYDR", "IRAO", "UPRO", "FEES", "MSNG", "MRKP", "APTK"]
+    },
+    "pharma_chem": {
+      "name": "Фармацевтика и химия",
+      "tickers": ["PHARM", "APRI", "AQUA"]
+    }
+  }
+}
