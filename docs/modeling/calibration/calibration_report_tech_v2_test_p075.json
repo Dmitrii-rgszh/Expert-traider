@@ -1,0 +1,13 @@
+{
+  "predictions_csv": "docs\\modeling\\predictions\\tech_v2_predictions_test.csv",
+  "target_precision": 0.75,
+  "avg_precision_score": 0.33104738340399276,
+  "roc_auc_score": 0.8617616029872226,
+  "num_samples": 26906,
+  "num_positives": 137,
+  "positive_rate": 0.005091801085259793,
+  "calibrated_threshold": 0.9863405,
+  "achieved_precision": 0.8,
+  "achieved_recall": 0.058394160583941604,
+  "f1_score": 0.10884353741496598
+}

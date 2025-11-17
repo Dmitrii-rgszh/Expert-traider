@@ -1,0 +1,9 @@
+dropout: 0.2
+feature_dim: 42
+focal_alpha: null
+focal_gamma: 2.0
+hidden_dim: 128
+loss_fn: focal
+model_type: tcn
+num_layers: 2
+seq_len: 32

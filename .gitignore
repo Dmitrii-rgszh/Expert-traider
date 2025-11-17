@@ -27,3 +27,11 @@ Thumbs.db
 # Large local artifacts
 app.db
 data/training/baseline_with_news.csv
+data/training/dataset_intraday_v1_q4.csv
+data/training/dataset_intraday_v1_5m_allhorizons_2025q4.csv
+data/training/dataset_intraday_v1_5m_allhorizons_tech_v3_2025q4.csv
+data/training/dataset_intraday_v1_5m_allhorizons_tech_v3_2025q4_v2.csv
+data/training/dataset_intraday_v2_1m_2025q4.csv
+data/training/dataset_intraday_v2_1m_2025q4_enriched.csv
+data/training/dataset_intraday_v2_1m_2025q4_enriched_strong.csv
+data/training/dataset_intraday_v2_1m_2025q4_enriched_strong_q80.csv

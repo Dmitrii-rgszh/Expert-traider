@@ -1,0 +1,11 @@
+{
+  "label_set": "intraday_v2",
+  "timeframe": "1m",
+  "horizon_minutes": 60,
+  "tp_r_multiple": 1.5,
+  "sl_r_multiple": 1.0,
+  "num_rows": 354651,
+  "positive_rate": 0.27192366580102695,
+  "r_multiple_mean": -0.01646218176338807,
+  "r_multiple_median": 0.0
+}

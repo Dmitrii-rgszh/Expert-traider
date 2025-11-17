@@ -1,0 +1,31 @@
+{
+  "label_set": "intraday_v1_5m",
+  "timeframe": "5m",
+  "start": "2025-08-17T21:00:00+00:00",
+  "end": "2025-11-16T20:59:00+00:00",
+  "total": 245256,
+  "horizons": {
+    "30": {
+      "rows": 81808,
+      "long_positive_ratio": 0.006234109133581068,
+      "short_positive_ratio": 0.006344122824173675,
+      "long_pnl_mean": -8.770512818132829e-05,
+      "short_pnl_mean": 8.291267698885726e-05
+    },
+    "60": {
+      "rows": 81766,
+      "long_positive_ratio": 0.014663796688109972,
+      "short_positive_ratio": 0.016192549470440035,
+      "long_pnl_mean": -0.00016474860570883364,
+      "short_pnl_mean": 0.00016513980969164004
+    },
+    "120": {
+      "rows": 81682,
+      "long_positive_ratio": 0.032969320046032174,
+      "short_positive_ratio": 0.041490169192723,
+      "long_pnl_mean": -0.0003492429451467558,
+      "short_pnl_mean": 0.0003444197232587608
+    }
+  },
+  "text_summary": "Label set=intraday_v1_5m timeframe=5m rows=245256 window=2025-08-17..2025-11-16\n- H=30m rows=81808 long+= 0.62% short+= 0.63%\n- H=60m rows=81766 long+= 1.47% short+= 1.62%\n- H=120m rows=81682 long+= 3.30% short+= 4.15%"
+}

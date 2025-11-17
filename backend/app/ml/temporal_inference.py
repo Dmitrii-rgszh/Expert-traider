@@ -59,7 +59,11 @@ class TemporalInferenceService:
         seq_len = int(hparams.get("seq_len", self.seq_len))
         dropout = float(hparams.get("dropout", 0.2))
         model = TemporalCNN(feature_dim=feature_dim, seq_len=seq_len, dropout=dropout)
-        model.load_state_dict(state["state_dict"])
+        state_dict = dict(state.get("state_dict", {}))
+        # lightning checkpoints may contain extra buffers like `pos_weight` that
+        # are only used during training; drop them to avoid strict loading errors
+        state_dict.pop("pos_weight", None)
+        model.load_state_dict(state_dict, strict=False)
         self.seq_len = seq_len
         return model
 

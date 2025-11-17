@@ -1,0 +1,7 @@
+dropout: 0.2
+feature_dim: 28
+focal_alpha: null
+focal_gamma: 1.5
+loss_fn: focal
+model_type: tcn
+seq_len: 64

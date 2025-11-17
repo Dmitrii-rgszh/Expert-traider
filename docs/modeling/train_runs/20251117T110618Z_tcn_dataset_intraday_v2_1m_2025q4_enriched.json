@@ -1,0 +1,41 @@
+{
+  "generated_at": "2025-11-17T11:06:18.955048+00:00",
+  "dataset_path": "data\\training\\dataset_intraday_v2_1m_2025q4_enriched.csv",
+  "model_type": "tcn",
+  "seq_len": 32,
+  "batch_size": 128,
+  "max_epochs": 3,
+  "learning_rate": 0.001,
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "walk_forward": [
+    {
+      "name": "window_q4",
+      "metrics": {
+        "accuracy": 0.407389045610703,
+        "precision": 0.015811836819986533,
+        "recall": 0.9360824742268041,
+        "f1": 0.031098375440959895,
+        "support": 143212,
+        "classification_report": "              precision    recall  f1-score   support\n\n         0.0     0.9984    0.4020    0.5732    141757\n         1.0     0.0158    0.9361    0.0311      1455\n\n    accuracy                         0.4074    143212\n   macro avg     0.5071    0.6690    0.3021    143212\nweighted avg     0.9884    0.4074    0.5677    143212\n",
+        "roc_auc": 0.8630030452140802,
+        "pr_auc": 0.18523053818218355,
+        "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn_intraday_v2\\tcn_window_q4\\checkpoints\\tcn-window_q4-epoch=00-v2.ckpt"
+      },
+      "log_dir": "logs\\temporal_cnn_intraday_v2\\tcn_window_q4",
+      "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn_intraday_v2\\tcn_window_q4\\checkpoints\\tcn-window_q4-epoch=00-v2.ckpt",
+      "split_windows": {},
+      "counts": {
+        "train_rows": 669331,
+        "val_rows": 143428,
+        "test_rows": 143429,
+        "train_sequences": 669114,
+        "val_sequences": 143211,
+        "test_sequences": 143212,
+        "train_positive": 16053,
+        "train_negative": 653061,
+        "pos_weight": 40.68155484956083
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db.session import Base
@@ -41,6 +41,11 @@ class NewsEvent(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
+    __table_args__ = (
+        Index("ix_news_events_published_at", "published_at"),
+        Index("ix_news_events_secid_published_at", "secid", "published_at"),
+    )
+
 
 class GlobalRiskEvent(Base):
     __tablename__ = "global_risk_events"
@@ -67,6 +72,11 @@ class RiskAlert(Base):
     trigger_reason: Mapped[str] = mapped_column(String(128), nullable=False)
     linked_global_event_id: Mapped[Optional[int]] = mapped_column(ForeignKey("global_risk_events.id"), nullable=True)
     decay_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_risk_alerts_timestamp", "timestamp"),
+        Index("ix_risk_alerts_secid_timestamp", "secid", "timestamp"),
+    )
 
 
 class SanctionEntity(Base):

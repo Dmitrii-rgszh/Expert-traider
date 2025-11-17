@@ -1,0 +1,13 @@
+{
+  "predictions_csv": "data\\modeling\\val_predictions_tft_strong_q80_val.csv",
+  "target_precision": 0.7,
+  "avg_precision_score": 0.9999526360972144,
+  "roc_auc_score": 0.999999862356659,
+  "num_samples": 143211,
+  "num_positives": 407,
+  "positive_rate": 0.002841960463930843,
+  "calibrated_threshold": 2.6553293e-05,
+  "achieved_precision": 0.7005163511187608,
+  "achieved_recall": 1.0,
+  "f1_score": 0.8238866396761134
+}

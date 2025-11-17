@@ -8,6 +8,7 @@ from .fixed_income import OfzAuction, OfzYield
 from .regimes import MarketRegime, MarketRegimeDetail, StrategyRegimePolicy
 from .policies import PolicyFeedback, PolicyRun
 from .operations import EtlJob, TrainDataSnapshot
+from .fundamental import FundamentalMetric
 from .market_data import (
     Candle,
     IndexCandle,
@@ -52,6 +53,7 @@ __all__ = [
     "PolicyFeedback",
     "TrainDataSnapshot",
     "EtlJob",
+    "FundamentalMetric",
     "NewsSource",
     "NewsEvent",
     "GlobalRiskEvent",

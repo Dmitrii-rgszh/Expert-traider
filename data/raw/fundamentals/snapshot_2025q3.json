@@ -1,0 +1,175 @@
+[
+  {
+    "secid": "SBER",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-15T00:00:00+03:00",
+        "period_end": "2025-06-30T00:00:00+03:00",
+        "value": 0.18,
+        "currency": "RUB",
+        "source": "internal_report"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-15T00:00:00+03:00",
+        "value": 0.068,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "net_debt_to_ebitda",
+        "metric_date": "2025-08-15T00:00:00+03:00",
+        "value": 1.2,
+        "currency": "RUB"
+      }
+    ]
+  },
+  {
+    "secid": "GAZP",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-10T00:00:00+03:00",
+        "period_end": "2025-06-30T00:00:00+03:00",
+        "value": -0.05,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-10T00:00:00+03:00",
+        "value": 0.045,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "net_debt_to_ebitda",
+        "metric_date": "2025-08-10T00:00:00+03:00",
+        "value": 1.9,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "sanction_score",
+        "metric_date": "2025-09-01T00:00:00+03:00",
+        "value": 0.6
+      }
+    ]
+  },
+  {
+    "secid": "LKOH",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-12T00:00:00+03:00",
+        "value": 0.07,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-12T00:00:00+03:00",
+        "value": 0.085,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "net_debt_to_ebitda",
+        "metric_date": "2025-08-12T00:00:00+03:00",
+        "value": 0.8,
+        "currency": "RUB"
+      }
+    ]
+  },
+  {
+    "secid": "ALRS",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-05T00:00:00+03:00",
+        "value": 0.11,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-05T00:00:00+03:00",
+        "value": 0.072,
+        "currency": "RUB"
+      }
+    ]
+  },
+  {
+    "secid": "AFLT",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-03T00:00:00+03:00",
+        "value": 0.09,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "net_debt_to_ebitda",
+        "metric_date": "2025-08-03T00:00:00+03:00",
+        "value": 2.4,
+        "currency": "RUB"
+      }
+    ]
+  },
+  {
+    "secid": "AFKS",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-02T00:00:00+03:00",
+        "value": 0.03,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-02T00:00:00+03:00",
+        "value": 0.055,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "sanction_score",
+        "metric_date": "2025-09-05T00:00:00+03:00",
+        "value": 0.4
+      }
+    ]
+  },
+  {
+    "secid": "AKRN",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-07T00:00:00+03:00",
+        "value": 0.22,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-07T00:00:00+03:00",
+        "value": 0.061,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "net_debt_to_ebitda",
+        "metric_date": "2025-08-07T00:00:00+03:00",
+        "value": 0.4,
+        "currency": "RUB"
+      }
+    ]
+  },
+  {
+    "secid": "AQUA",
+    "metrics": [
+      {
+        "metric_type": "earnings_yoy",
+        "metric_date": "2025-08-09T00:00:00+03:00",
+        "value": 0.04,
+        "currency": "RUB"
+      },
+      {
+        "metric_type": "dividend_yield",
+        "metric_date": "2025-08-09T00:00:00+03:00",
+        "value": 0.05,
+        "currency": "RUB"
+      }
+    ]
+  }
+]

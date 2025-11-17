@@ -1,0 +1,13 @@
+{
+  "predictions_csv": "docs\\modeling\\predictions\\tech_v2_predictions_val.csv",
+  "target_precision": 0.75,
+  "avg_precision_score": 0.08297595908171573,
+  "roc_auc_score": 0.760312121198321,
+  "num_samples": 26905,
+  "num_positives": 482,
+  "positive_rate": 0.017914885708976026,
+  "calibrated_threshold": null,
+  "achieved_precision": null,
+  "achieved_recall": null,
+  "warning": "Could not achieve target precision of 0.75"
+}

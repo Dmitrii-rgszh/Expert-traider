@@ -88,6 +88,18 @@ def parse_args() -> argparse.Namespace:
         default=0.15,
         help="Val split ratio used during training (default: 0.15)",
     )
+    parser.add_argument(
+        "--target-column",
+        type=str,
+        default="label_long",
+        help="Name of the target column used during training (default: label_long)",
+    )
+    parser.add_argument(
+        "--split",
+        choices=["val", "test", "both"],
+        default="val",
+        help="Which split to extract predictions for (default: val)",
+    )
     return parser.parse_args()
 
 
@@ -152,9 +164,10 @@ def main() -> None:
     df = pd.read_csv(args.dataset_path)
     print(f"Dataset shape: {df.shape}")
 
-    # Prepare feature columns (exclude metadata)
+    # Prepare feature columns (exclude metadata) and sanitize NaN/inf
     feature_cols = [col for col in df.columns if col not in META_COLUMNS]
     print(f"Feature columns: {len(feature_cols)}")
+    df[feature_cols] = df[feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
     # Create data module to get validation split
     data_module = BaselineDataModule(
@@ -165,6 +178,7 @@ def main() -> None:
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
         num_workers=0,
+        target_column=args.target_column,
     )
     data_module.setup("fit")
     val_loader = data_module.val_dataloader()
@@ -177,25 +191,46 @@ def main() -> None:
     model = model.to(device)
     print(f"Model loaded on device: {device}")
 
-    # Extract predictions
-    print("Running inference on validation set...")
-    y_true, y_pred_proba = extract_predictions(model, val_loader, device)
-    print(f"Extracted {len(y_true)} predictions")
-
-    # Save to CSV
-    output_df = pd.DataFrame({
-        "y_true": y_true,
-        "y_pred_proba": y_pred_proba,
-    })
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    output_df.to_csv(args.output, index=False)
-    print(f"Saved validation predictions to: {args.output}")
-
-    # Print summary statistics
-    print(f"\\nSummary:")
-    print(f"  Positive samples: {np.sum(y_true)} ({100 * np.mean(y_true):.2f}%)")
-    print(f"  Mean predicted probability: {np.mean(y_pred_proba):.4f}")
-    print(f"  Std predicted probability: {np.std(y_pred_proba):.4f}")
+    # Extract predictions based on split choice
+    if args.split in ["val", "both"]:
+        print("Running inference on validation set...")
+        y_true_val, y_pred_proba_val = extract_predictions(model, val_loader, device)
+        print(f"Extracted {len(y_true_val)} validation predictions")
+        
+        # Save validation predictions
+        val_output_path = args.output.parent / f"{args.output.stem}_val{args.output.suffix}"
+        val_df = pd.DataFrame({
+            "y_true": y_true_val,
+            "y_pred_proba": y_pred_proba_val,
+        })
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        val_df.to_csv(val_output_path, index=False)
+        print(f"Saved validation predictions to: {val_output_path}")
+        print(f"\nValidation summary:")
+        print(f"  Positive samples: {np.sum(y_true_val)} ({100 * np.mean(y_true_val):.2f}%)")
+        print(f"  Mean predicted probability: {np.mean(y_pred_proba_val):.4f}")
+        print(f"  Std predicted probability: {np.std(y_pred_proba_val):.4f}")
+    
+    if args.split in ["test", "both"]:
+        data_module.setup("test")
+        test_loader = data_module.test_dataloader()
+        print(f"\nTest samples: {len(data_module.test_ds)}")
+        print("Running inference on test set...")
+        y_true_test, y_pred_proba_test = extract_predictions(model, test_loader, device)
+        print(f"Extracted {len(y_true_test)} test predictions")
+        
+        # Save test predictions
+        test_output_path = args.output.parent / f"{args.output.stem}_test{args.output.suffix}"
+        test_df = pd.DataFrame({
+            "y_true": y_true_test,
+            "y_pred_proba": y_pred_proba_test,
+        })
+        test_df.to_csv(test_output_path, index=False)
+        print(f"Saved test predictions to: {test_output_path}")
+        print(f"\nTest summary:")
+        print(f"  Positive samples: {np.sum(y_true_test)} ({100 * np.mean(y_true_test):.2f}%)")
+        print(f"  Mean predicted probability: {np.mean(y_pred_proba_test):.4f}")
+        print(f"  Std predicted probability: {np.std(y_pred_proba_test):.4f}")
 
 
 if __name__ == "__main__":

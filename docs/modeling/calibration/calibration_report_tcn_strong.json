@@ -1,0 +1,13 @@
+{
+  "predictions_csv": "data\\modeling\\val_predictions_tcn_strong_val.csv",
+  "target_precision": 0.7,
+  "avg_precision_score": 0.48906443988419745,
+  "roc_auc_score": 0.9712132348596213,
+  "num_samples": 143211,
+  "num_positives": 123,
+  "positive_rate": 0.0008588725726375767,
+  "calibrated_threshold": 0.90975606,
+  "achieved_precision": 0.7037037037037037,
+  "achieved_recall": 0.15447154471544716,
+  "f1_score": 0.25333333333333335
+}

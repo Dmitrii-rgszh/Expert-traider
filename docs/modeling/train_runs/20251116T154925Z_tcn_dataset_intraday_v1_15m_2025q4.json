@@ -1,0 +1,99 @@
+{
+  "generated_at": "2025-11-16T15:49:25.544785+00:00",
+  "dataset_path": "data\\training\\dataset_intraday_v1_15m_2025q4.csv",
+  "model_type": "tcn",
+  "seq_len": 48,
+  "batch_size": 128,
+  "max_epochs": 3,
+  "learning_rate": 0.0005,
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "walk_forward": [
+    {
+      "name": "q4_2025_split_1",
+      "metrics": {
+        "accuracy": 0.9610015174506829,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 13180,
+        "classification_report": "              precision    recall  f1-score   support\n\n         0.0     0.9610    1.0000    0.9801     12666\n         1.0     0.0000    0.0000    0.0000       514\n\n    accuracy                         0.9610     13180\n   macro avg     0.4805    0.5000    0.4901     13180\nweighted avg     0.9235    0.9610    0.9419     13180\n",
+        "roc_auc": 0.3516001661361247,
+        "pr_auc": 0.02758849199190696,
+        "roc_curve_path": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_1\\plots\\roc_curve.png",
+        "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_1\\checkpoints\\tcn-q4_2025_split_1-epoch=00-v2.ckpt"
+      },
+      "log_dir": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_1",
+      "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_1\\checkpoints\\tcn-q4_2025_split_1-epoch=00-v2.ckpt",
+      "split_windows": {
+        "train": [
+          "2025-08-18T00:00:00+00:00",
+          "2025-10-04T23:59:00+00:00"
+        ],
+        "val": [
+          "2025-10-05T00:00:00+00:00",
+          "2025-10-14T23:59:00+00:00"
+        ],
+        "test": [
+          "2025-10-15T00:00:00+00:00",
+          "2025-10-31T23:59:00+00:00"
+        ]
+      },
+      "counts": {
+        "train_rows": 36702,
+        "val_rows": 7890,
+        "test_rows": 13509,
+        "train_sequences": 36373,
+        "val_sequences": 7561,
+        "test_sequences": 13180,
+        "train_positive": 298,
+        "train_negative": 36075,
+        "pos_weight": 121.05704697986577
+      },
+      "roc_curve_path": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_1\\plots\\roc_curve.png"
+    },
+    {
+      "name": "q4_2025_split_2",
+      "metrics": {
+        "accuracy": 0.8776196346520229,
+        "precision": 0.006737247353224254,
+        "recall": 0.1044776119402985,
+        "f1": 0.012658227848101266,
+        "support": 8923,
+        "classification_report": "              precision    recall  f1-score   support\n\n         0.0     0.9924    0.8835    0.9348      8856\n         1.0     0.0067    0.1045    0.0127        67\n\n    accuracy                         0.8776      8923\n   macro avg     0.4996    0.4940    0.4737      8923\nweighted avg     0.9850    0.8776    0.9278      8923\n",
+        "roc_auc": 0.7124000593239764,
+        "pr_auc": 0.012831746211125832,
+        "roc_curve_path": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_2\\plots\\roc_curve.png",
+        "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_2\\checkpoints\\tcn-q4_2025_split_2-epoch=02-v2.ckpt"
+      },
+      "log_dir": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_2",
+      "best_checkpoint": "E:\\TRAIN\\AUTO-TRADER\\logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_2\\checkpoints\\tcn-q4_2025_split_2-epoch=02-v2.ckpt",
+      "split_windows": {
+        "train": [
+          "2025-08-18T00:00:00+00:00",
+          "2025-10-24T23:59:00+00:00"
+        ],
+        "val": [
+          "2025-10-25T00:00:00+00:00",
+          "2025-10-31T23:59:00+00:00"
+        ],
+        "test": [
+          "2025-11-01T00:00:00+00:00",
+          "2025-11-13T23:59:00+00:00"
+        ]
+      },
+      "counts": {
+        "train_rows": 53262,
+        "val_rows": 4839,
+        "test_rows": 9252,
+        "train_sequences": 52933,
+        "val_sequences": 4510,
+        "test_sequences": 8923,
+        "train_positive": 1000,
+        "train_negative": 51933,
+        "pos_weight": 51.933
+      },
+      "roc_curve_path": "logs\\temporal_cnn\\intraday_15m_q4\\tcn_q4_2025_split_2\\plots\\roc_curve.png"
+    }
+  ]
+}

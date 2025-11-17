@@ -1,5 +1,6 @@
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 try:
     import python_multipart  # type: ignore
@@ -10,12 +11,18 @@ else:  # pragma: no cover
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from .core.config import get_settings
 from .db.session import Base, engine
 from .routers.analyze import router as analyze_router
+from .routers.trader import router as trader_router
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BASE_DIR / ".env")
 
 settings = get_settings()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,3 +48,4 @@ def health():
 
 
 app.include_router(analyze_router, prefix=f"{settings.api_prefix}")
+app.include_router(trader_router, prefix=f"{settings.api_prefix}")

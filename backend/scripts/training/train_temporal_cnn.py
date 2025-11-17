@@ -54,12 +54,18 @@ META_COLUMNS = {
     "timeframe",
     "feature_set",
     "label_set",
+    "label_set_label",
+    "label_set_feat",
     "signal_time",
     "horizon_minutes",
+    "horizon_minutes_label",
+    "horizon_minutes_feat",
     "forward_return_pct",
     "max_runup_pct",
     "max_drawdown_pct",
     "label_long",
+    "label_long_label",
+    "label_long_feat",
     "label_short",
 }
 
@@ -139,6 +145,12 @@ def parse_args() -> argparse.Namespace:
         help="Positive-class weight for focal loss; defaults to value derived from pos_weight",
     )
     parser.add_argument(
+        "--target-column",
+        type=str,
+        default="label_long",
+        help="Name of the target column in the dataset (default: label_long, e.g. label_long_strong for top-tail labels)",
+    )
+    parser.add_argument(
         "--plot-roc",
         action="store_true",
         help="Save ROC curve using test predictions after training",
@@ -202,6 +214,7 @@ class BaselineDataModule(pl.LightningDataModule):
         min_val_fraction: float = 0.1,
         pos_weight_override: Optional[float] = None,
         pos_weight_scale: float = 1.0,
+        target_column: str = "label_long",
     ) -> None:
         super().__init__()
         self.df = df
@@ -215,6 +228,7 @@ class BaselineDataModule(pl.LightningDataModule):
         self.min_val_fraction = min_val_fraction
         self.pos_weight_override = pos_weight_override
         self.pos_weight_scale = pos_weight_scale
+        self.target_column = target_column
         self.train_ds: Optional[SlidingWindowDataset] = None
         self.val_ds: Optional[SlidingWindowDataset] = None
         self.test_ds: Optional[SlidingWindowDataset] = None
@@ -295,7 +309,9 @@ class BaselineDataModule(pl.LightningDataModule):
             if len(group) < self.seq_len:
                 continue
             features = group[self.feature_cols].to_numpy(dtype=np.float32)
-            target = group["label_long"].to_numpy(dtype=np.float32)
+            if self.target_column not in group.columns:
+                raise KeyError(f"Target column '{self.target_column}' not found in dataset")
+            target = group[self.target_column].to_numpy(dtype=np.float32)
             for idx in range(self.seq_len - 1, len(group)):
                 window = features[idx - self.seq_len + 1 : idx + 1]
                 sequences.append(window)
@@ -595,10 +611,12 @@ def prepare_dataframe(dataset_path: Path) -> tuple[pd.DataFrame, list[str]]:
         raise FileNotFoundError(f"Dataset {dataset_path} not found. Re-run prepare_baseline_dataset first.")
     df = pd.read_csv(dataset_path, parse_dates=["signal_time"])
     if df.empty:
-        raise ValueError("Loaded dataset is empty — nothing to train on.")
+        raise ValueError("Loaded dataset is empty - nothing to train on.")
     feature_cols = [col for col in df.columns if col not in META_COLUMNS]
     if not feature_cols:
         raise ValueError("No feature columns detected in dataset.")
+    # Replace inf/NaN in features to keep losses finite during training
+    df[feature_cols] = df[feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
     return df, feature_cols
 
 
@@ -693,6 +711,7 @@ def _train_single_run(
         split_config=split_windows or None,
         pos_weight_override=args.pos_weight_override,
         pos_weight_scale=args.pos_weight_scale,
+        target_column=getattr(args, "target_column", "label_long"),
     )
     datamodule.setup()
     has_val_sequences = datamodule.val_ds is not None and len(datamodule.val_ds) > 0
